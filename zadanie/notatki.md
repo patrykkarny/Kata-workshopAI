@@ -113,7 +113,7 @@ Jak ramki mapują się na serwisy (serwisy nazywamy po angielsku, ramki zostają
 - Room Offer Service: ramka Marketing, tylko do odczytu dla reszty
 
 Które wymagania robi który serwis:
-- Reservations Service: FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-09, FR-15, FR-16, FR-21, FR-22
+- Reservations Service: FR-01, FR-02, FR-03, FR-04, FR-05, FR-09, FR-15, FR-16, FR-21, FR-22
 - Housekeeping Service: FR-11, FR-12, FR-13, FR-14, FR-17, FR-23, FR-24, FR-25
 - Stay Service: FR-10, FR-18, FR-26, FR-27, FR-28
 - Legacy Sync Service: FR-07, FR-08, FR-19

@@ -14,7 +14,7 @@ Liczby, na których to opieramy:
 - nasze wyliczenia: 107 hoteli x 200 pokoi to ok. 21 tys. pokoi; ok. 60 rezerwacji na hotel dziennie, na 107 hoteli ok. 6400 dziennie, czyli średnio jedna rezerwacja co 14 sekund
 - najgorsza godzina: jak 20% dziennych rezerwacji przyjdzie w jednej godzinie, to ok. 1300 na godzinę, czyli ok. 21 na minutę
 - wymeldowania skupiają się między 10 a 12, to ok. jedno na 2 minuty w hotelu
-- zadanie: gości „hundreds”, personelu hotelu „less than 20”
+- zadanie: gości „hundreds”, personelu hotelu „less than 20” (A-04)
 - wniosek: pojedyncza rezerwacja to mały ruch, ale platforma od pierwszego dnia obsługuje 107 hoteli naraz i ma przyjmować kolejne, a check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach
 
 „Peak season” w zadaniu („Peak season is quickly approaching, so the system must be ready quickly or we have to wait until next year!”) chodzi o termin. Szczyt sezonu znamy z góry, a ruch nie ma nagłych skoków.
@@ -57,6 +57,6 @@ Skalujemy w poziomie per serwis: dokładamy instancje temu serwisowi, który teg
 ## Notes
 
 - Źródła: notatki (Nasze wyliczenia, Charakterystyki: top 3 i Odrzucone, Trade-offy: prostota kontra skalowalność, Jak mierzymy: skalowalność, Decyzje), grill-me Q30, Q31; sekcja „Doprecyzowania po ADR-ach” (Skalowanie); zadanie (01 Users, 03 Additional context).
-- Spec: C-01, A-02; PRD, tabela Actors (skala gościa). `03-characteristics.md` jeszcze ma skalowalność i elastyczność w „Considered, Not Driving”; do aktualizacji po zmianie Q31.
+- Spec: `zadanie/spec/01-prd.md` (C-01, A-02, A-04; tabela Actors: skala gościa), `zadanie/spec/03-characteristics.md` (top 3: skalowalność; elastyczność odrzucona w „Considered, Not Driving”; trade-off prostota kontra skalowalność).
 - Charakterystyki: prostota, skalowalność, odporność na awarie (top 3); elastyczność (odrzucona).
 - Powiązane: ADR-001 (styl service-based, ocena stylów, minimum dwie instancje na serwis).
