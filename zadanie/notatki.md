@@ -20,6 +20,7 @@ Co powiedział biznes:
 - gość chce sam wybrać konkretny pokój (np. daleko od windy), automatyczny dobór nie jest potrzebny
 - zdjęcia i opisy pokoi dostajemy gotowe
 - legacy ma API, ale integracja jest jeszcze w toku
+- zmiana: legacy nie ma API; z legacy wymieniamy pliki w obie strony: legacy przysyła pokoje, które nowy system może rezerwować, a nowy system odsyła, które z nich są zarezerwowane
 - sprzątanie to ludzie hotelu, dziś kierowniczka rozdziela pracę przez wiadomości
 - najważniejszy dla biznesu jest system do sprzątania
 - pokój ma być przygotowany w 15 minut
@@ -48,7 +49,7 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q5: na pierwszy dzień sezonu: rezerwacje, check-in, pobyt, checkout i housekeeping; marketing, ceny i raporty zostają w legacy
 - Q6: rezerwacje z telefonu i walk-in robi recepcjonista w naszej aplikacji, tą samą ścieżką co gość
 - Q7: zakładamy, że niezapłacona rezerwacja trzyma pokój przez 10 minut, potem pokój wraca do sprzedaży
-- Q7: jak legacy leży i płatność czeka w kolejce, blokada pokoju nie wygasa po 10 minutach, tylko trzyma do odpowiedzi legacy, bo inaczej sprzedalibyśmy pokój, za który gość już płaci
+- Q7: 10 minut to czas, w którym gość płaci u operatora płatności; na legacy nic nie czeka
 - Q10: klucze mobilne dopiero w etapie 2, na start karty jak dziś
 - Q11: na urządzeniu przy wózku housekeeper widzi listę pokoi do zrobienia w kolejności, z życzeniami gościa i usterkami
 - Q12: usterka blokująca zdejmuje pokój ze sprzedaży, dla gości na ten pokój manager wybiera zastępczy
@@ -59,13 +60,14 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q25: przy wyborze konkretnego pokoju gość widzi jego zdjęcia i położenie na planie piętra, bo o to chodzi w zadaniu (wymaganie 02)
 - Q26: legacy odgórnie blokuje pulę pokoi dla nas i nie może ich sprzedać
 - Q28: wszystko z rezerwacji dzieje się u nas oprócz płatności, płatność robi legacy przez API
-- Q29: zmiana: rezerwacje i płatności wysyłamy do legacy od razu, a raz dziennie robimy tylko porównanie danych; sama synchronizacja raz dziennie nie potwierdziłaby płatności
+- Q28: zmiana: przy rezerwacji gość płaci na stronie operatora płatności (preautoryzacja), a pobyt rozlicza legacy przy wymeldowaniu jak dziś; informację o płatności dostaje w pliku
+- Q29: zmiana: z legacy wymieniamy pliki w obie strony co 15 minut, a raz dziennie robimy pełne porównanie danych
 - Q31: zmiana: top 3 to prostota, integracje i odporność na awarie (szczegóły w charakterystykach)
 - Q34: to ten sam pokój, ale każdy kontekst trzyma o nim co innego: oferta zdjęcia, dostępność noce i status, housekeeping zadania
 - Q36: Marketing odpowiada za zdjęcia i opisy, status pokoju jest u nas, cena u managera w legacy
 - Q38: kierowniczka sprzątania dostaje panel z kolejką wszystkich wózków i może zmienić kolejność
 - Q44: jak nasz system padnie, recepcja ma odświeżaną co kwadrans listę przyjazdów, wyjazdów i statusów, robi check-in ręcznie i dopisuje potem
-- Q55: housekeeping obejmuje wszystkie pokoje hotelu; dla pokoi spoza puli bierzemy zameldowania i wymeldowania z legacy co kilka minut
+- Q55: housekeeping obejmuje wszystkie pokoje hotelu; dla pokoi spoza puli bierzemy zameldowania i wymeldowania z pliku z legacy co 15 minut
 
 Runda 5:
 - Q60: baza to zarządzany PostgreSQL z repliką w drugiej strefie i automatycznym przełączeniem w 1-2 minuty; w tym czasie wózki zapisują offline, a recepcja ma listę awaryjną; różnica z monolitem: błąd w kodzie, wdrożenie albo przeciążenie jednego serwisu nie kładzie pozostałych, a awarię samej bazy łapie replika
@@ -73,7 +75,7 @@ Runda 5:
 - Q62: zmiana: „pokój gotowy” i „usterka” z Housekeepingu idą do Rezerwacji przez kolejkę zdarzeń, nie przez HTTPS; jak Rezerwacje leżą, zdarzenia czekają w kolejce, a status na recepcji uzupełnia się po powrocie
 - Q63: Synchronizacja przekazuje do Rezerwacji rezerwacje z legacy dla pokoi spoza puli, Rezerwacje liczą „pokój potrzebny o” dla wszystkich pokoi i wysyłają to do Housekeepingu
 - Q64: w maju pilot w 2-3 hotelach, od początku czerwca wszystkie hotele
-- Q65: jak płatność z kolejki zostanie odrzucona, blokada pokoju się zwalnia, gość dostaje maila i SMS z linkiem do ponownej płatności, a przy gościach VIP dzwoni recepcja
+- Q65: jak operator płatności odrzuci kartę, gość od razu to widzi i może podać inną; jak nie zapłaci w 10 minut, blokada się zwalnia, a przy gościach VIP dzwoni recepcja
 - Q66: listę awaryjną co 15 minut generuje serwis Pobyt i zapisuje poza naszymi serwisami (plik w magazynie plików, wysyłany też mailem do recepcji); ręczne check-iny recepcja wprowadza potem w aplikacji, a dalej trafiają do legacy normalną drogą
 - Q67: przydział pokoju dzień przed przyjazdem robi zadanie w serwisie Rezerwacje; jak nie ma wolnego pokoju danego typu, manager dostaje alert i decyduje o upgradzie
 - Q68: FR-02, FR-09 i FR-15 są w serwisie Rezerwacje, FR-18 w serwisie Pobyt
@@ -91,8 +93,8 @@ Z tablicy (zrzut: event-storming/kata-white.png), nazwy jak na ramkach:
 - Visit (supporting): check-in, przydzielenie zamka, pierwsze wejście, pobyt rozpoczęty
 - Faraway (supporting): checkout, zastrzeżenia do pokoju, anulowanie, zwrot, rekompensata, pokój znowu dostępny
 - Marketing (supporting): standard, cechy, zdjęcia, ID zamka i udostępnienie oferty; zdjęcia i opisy dostajemy gotowe
-- Synchronizacja (supporting): jedyne miejsce, które rozmawia z legacy: pre-rezerwacje i pula, rezerwacje, płatności, ceny, raporty check-in i checkout, porównanie danych
-- Payments (generic): płatności, rejestracja płatności i zwroty robi legacy, my tylko wysyłamy żądanie przez Synchronizację
+- Synchronizacja (supporting): jedyne miejsce, które wymienia pliki z legacy: od legacy pula pokoi, ceny, rezerwacje i pobyty spoza puli; do legacy nasze rezerwacje z puli, check-iny i checkouty, informacja o płatności; plus porównanie danych
+- Payments (generic): preautoryzację przy rezerwacji robi zewnętrzny operator płatności, a rozliczenie pobytu i zwroty robi legacy; my nie widzimy danych kart
 - raporty managera nie mają ramki, zostają w legacy tak jak dziś
 - klucze mobilne są na kilku ramkach (Visit, Housekeeping, Servis tech), więc to wspólna funkcja, a nie osobny obszar; wchodzą w etapie 2
 
@@ -107,7 +109,7 @@ Jak ramki mapują się na serwisy:
 - serwis Rezerwacje: ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją
 - serwis Housekeeping: ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
 - serwis Pobyt: ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; w etapie 2 też klucze mobilne
-- serwis Synchronizacja: ramka Synchronizacja i wywołania do Payments, z kolejką na czas awarii legacy
+- serwis Synchronizacja: ramka Synchronizacja, czyli import i eksport plików z legacy
 - serwis Oferta: ramka Marketing, tylko do odczytu dla reszty
 
 Które wymagania robi który serwis:
@@ -119,7 +121,7 @@ Które wymagania robi który serwis:
 
 Hot spoty z tablicy i rozmów:
 - Rezerwacja: dwa kanały mogą chcieć ten sam pokój na tę samą noc, dlatego blokada pokoju na noc jest w jednym miejscu
-- Synchronizacja: API legacy jest jeszcze w toku, dlatego mamy plan B z plikami co 15 minut
+- Synchronizacja: legacy nie ma API, tylko pliki, dlatego pula pokoi jest tylko nasza, a dane spoza puli mogą być spóźnione do 15 minut
 - Housekeeping: Wi-Fi w hotelu się rwie, dlatego aplikacja na wózki działa offline
 - Rezerwacja: handlowcy obiecują gościom rzeczy, których nie ma w systemie, dlatego obietnice zapisujemy jako życzenia ze sprawdzeniem
 
@@ -129,12 +131,12 @@ Hot spoty z tablicy i rozmów:
 
 Top 3:
 1. Prostota (simplicity): chodzi o prostą architekturę, nie o łatwość obsługi; system ma działać w czerwcu albo czekamy rok i robi go normalny zespół, więc mało serwisów, jedna baza, bez egzotycznej technologii; mierzymy tym, że MVP chodzi w hotelach pilotażowych przed sezonem
-2. Integracje (interoperability): prawie wszystko idzie przez cudze systemy: legacy, smart locki, urządzenia przy wózkach, cztery kanały; zmiana API legacy ma ruszać tylko Synchronizację, nie resztę systemu
-3. Odporność na awarie (fault tolerance): w sezonie przy 90% obłożenia hotel nie może stanąć; jak legacy nie odpowiada przez pół godziny, check-in, checkout i sprzątanie działają dalej, a płatności czekają w kolejce; jak padnie serwis rezerwacji, housekeeping dalej działa
+2. Integracje (interoperability): prawie wszystko idzie przez cudze systemy: legacy, smart locki, urządzenia przy wózkach, cztery kanały; zmiana formatu plików legacy ma ruszać tylko Synchronizację, nie resztę systemu
+3. Odporność na awarie (fault tolerance): w sezonie przy 90% obłożenia hotel nie może stanąć; nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie czeka na legacy na żywo, więc jak legacy leży albo plik nie przyjdzie, hotel działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa
 
 Ważne, ale poza top 3:
 - spójność danych: podwójnej rezerwacji pilnuje pula i to, że pokój na noc zapisujemy w jednym miejscu, nie wybór stylu
-- bezpieczeństwo: dane kart zostają w legacy, klucze mobilne dopiero w etapie 2, housekeeper dostaje klucz tylko do swojego pokoju na czas sprzątania
+- bezpieczeństwo: danych kart nie widzimy, przyjmuje je operator płatności, klucze mobilne dopiero w etapie 2, housekeeper dostaje klucz tylko do swojego pokoju na czas sprzątania
 - łatwość obsługi: ważna, ale to sprawa interfejsu, nie architektury
 - ewolucyjność: handlowcy cały czas coś obiecują, więc nowe rzeczy dokładamy w serwisie, którego dotyczą, albo jako adapter w Synchronizacji
 
@@ -144,11 +146,11 @@ Odrzucone:
 Trade-offy:
 - prostota kontra odporność na awarie: oddajemy część prostoty (pięć serwisów zamiast jednej aplikacji), żeby awaria jednego obszaru nie zatrzymała hotelu
 - prostota kontra spójność: zostajemy przy jednej bazie zamiast bazy na serwis, bo to prostsze i blokada pokoju to jedna transakcja; płacimy tym, że baza jest wspólnym punktem awarii, więc replika
-- integracje kontra termin: nie czekamy na idealne API legacy, mamy plan B z plikami, za cenę opóźnienia do 15 minut w trybie awaryjnym
+- integracje kontra aktualność: legacy ma tylko pliki, więc dane o pokojach spoza puli mogą być spóźnione do 15 minut; dla puli to nie problem, bo sprzedajemy ją tylko my
 - bezpieczeństwo kontra termin: smart locki przesuwamy do etapu 2, na start karty jak dziś
 
 Jak mierzymy:
-- integracje: zmiana API legacy zmienia kod tylko w Synchronizacji; testy kontraktowe z API legacy przy każdym buildzie
+- integracje: zmiana formatu pliku legacy zmienia kod tylko w Synchronizacji; testy na przykładowych plikach z legacy przy każdym buildzie
 - odporność na awarie: test, w którym wyłączamy serwis Rezerwacje na 30 minut, a check-in, checkout i sprzątanie działają
 - housekeeping: 15 minut od „gotowy do sprzątania” do „gotowy dla gościa”, mierzone na urządzeniu przy wózku
 
@@ -167,8 +169,8 @@ Jak mierzymy:
 - Zakres pierwszego dnia to rezerwacje, check-in, checkout, housekeeping i pokazywanie zdjęć pokoi przez Ofertę; reszta marketingu zostaje w legacy
 - Jeden stack: TypeScript (NestJS na backendzie, React na frontendzie) i PostgreSQL, a logowanie przez zewnętrznego dostawcę tożsamości, bo zespół ma znać jedną technologię i nie budujemy własnego logowania
 - Pokój na noc i jego status trzymamy u siebie, a nie w legacy, bo legacy nie sprzedaje puli, a sprzątanie potrzebuje jednego statusu; cena: musimy codziennie porównywać dane z legacy
-- Z legacy gadamy przez API od razu, a nie synchronizacją raz dziennie, bo inaczej nie potwierdzimy płatności; jak API legacy nie zdąży na czerwiec, plan B to wymiana plików co 15 minut
-- Płatności zostają w legacy, a nie u nas, bo tak mówi wymaganie 05 i nie chcemy trzymać danych kart
+- Z legacy wymieniamy pliki w obie strony co 15 minut, a nie raz dziennie, bo housekeeping potrzebuje świeżych wymeldowań z pokoi spoza puli; API nie ma, więc innej drogi nie ma
+- Płatność przy rezerwacji: preautoryzacja na stronie zewnętrznego operatora płatności, a rozliczenie pobytu i zwroty w legacy jak dziś, bo legacy nie ma API do płatności na żywo, a nie chcemy trzymać danych kart; zostajemy przy legacy tam, gdzie się da (wymaganie 05)
 - Jedna baza PostgreSQL z osobnym schematem na serwis, a nie baza na serwis, bo to prostsze i blokadę pokoju na noc załatwia jedna transakcja w serwisie Rezerwacje; serwisy nie czytają cudzych schematów; cena: baza to wspólny punkt awarii, więc replika i backupy
 - Housekeeping wchodzi na pierwszy dzień dla wszystkich pokoi hotelu, a nie później, bo biznes mówi, że to najważniejsze
 - Aplikacja na wózki jako aplikacja webowa działająca offline, a nie natywna, bo urządzenia daje firma, chcemy jeden stack, a Wi-Fi w hotelu się rwie
@@ -190,15 +192,15 @@ Kolejka
 - zdarzenie może przyjść dwa razy, więc każdy odbiorca sprawdza jego identyfikator i drugi raz go ignoruje
 - kolejka służy tylko do czterech zmian statusu pokoju; to nie jest event-driven dla całego systemu, więc nie przeczy odrzuceniu event-driven w stylu
 
-Legacy
-- zapytanie do legacy czeka maksymalnie 5 sekund, potem trafia do kolejki
-- blokada pokoju czekającego na legacy trzyma maksymalnie 2 godziny, potem się zwalnia i gość dostaje maila jak w Q65
-- w planie B (pliki co 15 minut) płatność potwierdza się z opóźnieniem, a blokada trzyma do potwierdzenia, tak jak przy awarii
-- o planie B decydujemy w połowie maja, jak API legacy nie będzie gotowe; decyduje tech lead razem z biznesem
-- jak codzienne porównanie znajdzie różnicę: dla pokoi z puli wygrywa nasz system, dla pokoi spoza puli wygrywa legacy; listę różnic dostaje rano manager hotelu
+Legacy (pliki)
+- legacy przysyła pulę pokoi, które możemy sprzedawać, a nasz system odsyła, które z nich są zarezerwowane; pula jest tylko nasza, więc opóźnienie plików nie grozi podwójną rezerwacją
+- od legacy bierzemy też ceny oraz rezerwacje, zameldowania i wymeldowania pokoi spoza puli, bo housekeeping robi wszystkie pokoje
+- do legacy wysyłamy nasze rezerwacje z danymi gościa, check-iny, checkouty i numer preautoryzacji, żeby legacy rozliczył pobyt
+- zakładamy wymianę co 15 minut; jak legacy umie tylko raz dziennie, pula dalej jest bezpieczna, a wymeldowania spoza puli recepcja zgłasza ręcznie
+- każdy plik ma numer kolejny; import jest powtarzalny, więc ten sam plik wczytany dwa razy nic nie psuje; brak pliku daje alert
+- raz dziennie pełne porównanie: dla pokoi z puli wygrywa nasz system, dla pokoi spoza puli wygrywa legacy; listę różnic dostaje rano manager hotelu
 - jak legacy nie umie blokować pokoi (A-01), pulę blokujemy w legacy jedną długą techniczną rezerwacją na każdy pokój z puli
-- synchronizacja raz dziennie odpadła z dwóch powodów: nie potwierdza płatności i przez cały dzień legacy i my widzimy coś innego, czyli przeczy odporności na awarie
-- płatności w legacy opisujemy w tym samym ADR co integrację, bo to jedna rozmowa z legacy
+- pokój z puli niesprzedany na 48 h przed nocą oddajemy do legacy w pliku (nadpisanie pre-rezerwacji)
 
 Baza
 - wspólna baza daje to, że utrzymujemy jedną bazę z jedną repliką i jednym backupem zamiast pięciu, czyli prościej i taniej
@@ -235,7 +237,8 @@ Skalowanie
 
 <!-- Czego wciąż nie wiecie. -->
 
-- kiedy będzie gotowe API legacy i czy zdążymy przed czerwcem
+- jak często legacy może wysyłać i przyjmować pliki i w jakim formacie
+- czy biznes zgadza się na preautoryzację u zewnętrznego operatora płatności przy rezerwacji, z rozliczeniem w legacy przy wymeldowaniu
 - gdzie są hotele spoza USA i czy dane gości muszą tam zostać
 - czy blokowanie pokoi w legacy już dziś działa
 - co biznes miał na myśli przez „kupowanie rzeczy dla gości”: życzenia do pokoju czy osobny sklep
