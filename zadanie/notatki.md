@@ -19,6 +19,7 @@ Co powiedział biznes:
 - dziś rezerwacje są głównie przez telefon i przy wejściu
 - gość chce sam wybrać konkretny pokój (np. daleko od windy), automatyczny dobór nie jest potrzebny
 - zdjęcia i opisy pokoi dostajemy gotowe
+- widok 3D pokoju pokazujemy tylko, jeśli hotel go dostarczy; na start zdjęcia i położenie na planie piętra
 - legacy ma API, ale integracja jest jeszcze w toku
 - zmiana: legacy nie ma API; z legacy wymieniamy pliki w obie strony: legacy przysyła pokoje, które nowy system może rezerwować, a nowy system odsyła, które z nich są zarezerwowane
 - sprzątanie to ludzie hotelu, dziś kierowniczka rozdziela pracę przez wiadomości
@@ -223,6 +224,8 @@ Wózki
 - przy konflikcie o kolejność wygrywa kierowniczka, o stan pokoju wygrywa housekeeper, który w nim był
 - 15 minut liczymy z czasu zapisanego na urządzeniu, a nie z czasu dotarcia zmiany na serwer
 - każde zadanie ma przypisaną jedną osobę, więc dwa wózki nie robią tego samego pokoju
+- każdy pokój ma checklistę sprzątania na urządzeniu przy wózku; zadania nie da się zamknąć bez przejścia checklisty, bo w luksusie gość nie wybacza drobiazgów
+- po sprzątaniu urządzenie prosi wyrywkowo o zdjęcie pokoju; zdjęcia trafiają do magazynu plików, a kierowniczka sprawdza jakość bez stania nad ludźmi; offline zdjęcie czeka w kolejce na urządzeniu
 
 Smart locki
 - klucz dla housekeepera wydaje Pobyt na prośbę Housekeepingu przy przydziale zadania i unieważnia po zakończeniu zadania
