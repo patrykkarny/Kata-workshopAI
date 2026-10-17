@@ -1,0 +1,59 @@
+graph TB
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["[C2] Kontenery (widok na slajd)"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    3["Housekeeping & Maintenance Staff<br/>[Person]<br/>Hotel staff on cleaning<br/>carts: clean and repair rooms<br/>in priority order."]
+    style 3 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    16["Smart Lock Platform (phase 2)<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone."]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+
+    subgraph 4 ["Room with a View"]
+      style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
+
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; smart-lock<br/>adapter in phase 2."]
+      style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja +<br/>calls to Payments: the only<br/>caller of the legacy system;<br/>outbox queue while legacy is<br/>down, nightly data<br/>reconciliation."]
+      style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      12["Oferta Service (Marketing)<br/>[Container: TypeScript, NestJS]<br/>Board frame Marketing: room<br/>standard, features, photos,<br/>descriptions, lock ID;<br/>read-only for the rest of the<br/>system."]
+      style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      13[("Shared Database<br/>[Container: PostgreSQL]<br/>One schema per service,<br/>services never read another<br/>service's schema; replica +<br/>backups.")]
+      style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room."]
+      style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
+      style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Ordered room list with guest<br/>wishes and defects; works<br/>offline, sends updates when<br/>Wi-Fi is back."]
+      style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings."]
+      style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    end
+
+    1-- "Browses, books<br/>[HTTPS]" -->5
+    2-- "Books, checks in / out<br/>[HTTPS]" -->6
+    3-- "Gets tasks, reports done /<br/>defect<br/>[Touch UI]" -->7
+    5-- "Reads rooms<br/>[HTTPS]" -->12
+    5-- "Searches, books<br/>[HTTPS]" -->8
+    6-- "Books, reads room board<br/>[HTTPS]" -->8
+    6-- "Checks in / out<br/>[HTTPS]" -->10
+    7-- "Syncs task updates<br/>[HTTPS]" -->9
+    8-- "Confirms booking + payment<br/>[HTTPS]" -->11
+    8-. "Room needed by<br/>[room-status-events]" .->9
+    10-. "Guest checked out<br/>[room-status-events]" .->9
+    10-- "Room occupied / vacated<br/>[HTTPS]" -->8
+    10-- "Check-in / out, refunds<br/>[HTTPS]" -->11
+    9-- "Room ready / defect<br/>[HTTPS]" -->8
+    11-- "Legacy bookings, stays<br/>[HTTPS]" -->8
+    11-- "Reservations, Payments,<br/>nightly reconciliation<br/>[HTTPS API; plan B: files every 15 min]" -->15
+    10-- "Mobile keys (phase 2)<br/>[Vendor API, HTTPS]" -->16
+
+  end

@@ -1,0 +1,29 @@
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["[C1] System Context diagram for Room with a View"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    16["Smart Lock Platform (phase 2)<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone."]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    17["Identity Provider<br/>[Software System]<br/>Signs in guests and staff<br/>(OIDC: OpenID Connect)."]
+    style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    3["Housekeeping & Maintenance Staff<br/>[Person]<br/>Hotel staff on cleaning<br/>carts: clean and repair rooms<br/>in priority order."]
+    style 3 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    4["Room with a View<br/>[Software System]<br/>Lets guests pick a specific<br/>room, keeps room-nights and<br/>room status, directs<br/>housekeeping by priority.<br/>Service-based, five services."]
+    style 4 fill:#1168bd,stroke:#0b4884,color:#ffffff
+
+    1-- "Browses, books<br/>[HTTPS]" -->4
+    2-- "Books, checks in / out<br/>[HTTPS]" -->4
+    3-- "Gets tasks, reports done /<br/>defect<br/>[Touch UI]" -->4
+    4-- "Signs in<br/>[OIDC]" -->17
+    4-- "Reservations, Payments,<br/>nightly reconciliation<br/>[HTTPS API; plan B: files every 15 min]" -->15
+    4-- "Mobile keys (phase 2)<br/>[Vendor API, HTTPS]" -->16
+
+  end

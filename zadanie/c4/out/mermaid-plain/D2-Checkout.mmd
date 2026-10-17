@@ -1,0 +1,34 @@
+graph TB
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["[D2] Dynamic diagram: guest checked out to room ready"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    subgraph 4 ["Room with a View"]
+      style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
+
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; smart-lock<br/>adapter in phase 2."]
+      style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
+      style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Ordered room list with guest<br/>wishes and defects; works<br/>offline, sends updates when<br/>Wi-Fi is back."]
+      style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings."]
+      style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    end
+
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+
+    2-- "1. Checks guest out<br/>[HTTPS]" -->6
+    6-- "2. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
+    10-- "3. Room vacated<br/>[HTTPS]" -->8
+    10-. "4. Guest checked out (event)<br/>[room-status-events]" .->9
+    9-. "5. Push new task (priority:<br/>next arrival)<br/>[WebSocket]" .->7
+    7-- "6. Room cleaned (offline<br/>queue, idempotent)<br/>[HTTPS]" -->9
+    9-- "7. Room ready<br/>[HTTPS]" -->8
+    8-. "8. Push: room ready for<br/>arrival<br/>[WebSocket]" .->6
+
+  end

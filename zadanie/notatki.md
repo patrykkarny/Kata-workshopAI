@@ -125,6 +125,9 @@ Odrzucone:
 - Odrzuciliśmy modularny monolit i microkernel, bo są tańsze i prostsze, ale jak padnie aplikacja, pada wszystko, a odporność na awarie mamy w top 3
 - Odrzuciliśmy mikroserwisy i event-driven, bo to za dużo ruchomych części jak na nasz termin, a event-driven dodatkowo daje spójność ostateczną tam, gdzie blokada pokoju potrzebuje transakcji
 - Cena service-based: pięć rzeczy do wdrożenia zamiast jednej i wywołania po sieci między serwisami
+- Serwisy gadają ze sobą przez HTTPS, a zmiany statusu pokoju (gość wymeldowany, pokój potrzebny o, pokój gotowy) idą przez prostą kolejkę zdarzeń, bo housekeeping ma działać dalej, nawet jak serwis rezerwacji leży
+- Oferta na pierwszy dzień tylko pokazuje zdjęcia, plany pięter i cechy pokoi, bo bez tego gość nie wybierze konkretnego pokoju; ceny i kampanie marketingu zostają w legacy (Q5)
+- Jeden stack: TypeScript (NestJS na backendzie, React na frontendzie) i PostgreSQL, a logowanie przez zewnętrznego dostawcę tożsamości, bo zespół ma znać jedną technologię i nie budujemy własnego logowania
 - Pokój na noc i jego status trzymamy u siebie, a nie w legacy, bo legacy nie sprzedaje puli, a sprzątanie potrzebuje jednego statusu; cena: musimy codziennie porównywać dane z legacy
 - Z legacy gadamy przez API od razu, a nie synchronizacją raz dziennie, bo inaczej nie potwierdzimy płatności; jak API legacy nie zdąży na czerwiec, plan B to wymiana plików co 15 minut
 - Płatności zostają w legacy, a nie u nas, bo tak mówi wymaganie 05 i nie chcemy trzymać danych kart

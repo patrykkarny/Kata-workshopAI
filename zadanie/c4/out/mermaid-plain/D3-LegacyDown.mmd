@@ -1,0 +1,44 @@
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["[D3] Dynamic diagram: legacy system down"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    subgraph 4 ["Room with a View"]
+      style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
+
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; smart-lock<br/>adapter in phase 2."]
+      style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja +<br/>calls to Payments: the only<br/>caller of the legacy system;<br/>outbox queue while legacy is<br/>down, nightly data<br/>reconciliation."]
+      style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      13[("Shared Database<br/>[Container: PostgreSQL]<br/>One schema per service,<br/>services never read another<br/>service's schema; replica +<br/>backups.")]
+      style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room."]
+      style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
+      style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings."]
+      style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    end
+
+    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+
+    1-- "1. Books a specific room<br/>[HTTPS]" -->5
+    5-- "2. POST /bookings<br/>[HTTPS]" -->8
+    8-- "3. Hold room-nights (awaiting<br/>legacy)<br/>[SQL, ACID]" -->13
+    8-- "4. Confirm hold: reservation<br/>+ payment<br/>[HTTPS]" -->11
+    11-- "5. Legacy timeout: store in<br/>outbox<br/>[SQL]" -->13
+    2-- "6. Checks another guest out<br/>[HTTPS]" -->6
+    6-- "7. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
+    10-- "8. Checkout report: queued in<br/>outbox<br/>[HTTPS]" -->11
+    10-. "9. Guest checked out:<br/>cleaning starts as usual<br/>[room-status-events]" .->9
+    11-- "10. Legacy back: replay<br/>outbox<br/>[HTTPS API; plan B: files every 15 min]" -->15
+
+  end

@@ -1,0 +1,39 @@
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["[D1] Dynamic diagram: booking a specific room"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    subgraph 4 ["Room with a View"]
+      style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
+
+      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja +<br/>calls to Payments: the only<br/>caller of the legacy system;<br/>outbox queue while legacy is<br/>down, nightly data<br/>reconciliation."]
+      style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      13[("Shared Database<br/>[Container: PostgreSQL]<br/>One schema per service,<br/>services never read another<br/>service's schema; replica +<br/>backups.")]
+      style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room."]
+      style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Ordered room list with guest<br/>wishes and defects; works<br/>offline, sends updates when<br/>Wi-Fi is back."]
+      style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings."]
+      style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    end
+
+    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+
+    1-- "1. Picks a specific room from<br/>photos<br/>[HTTPS]" -->5
+    5-- "2. POST /bookings (room,<br/>nights)<br/>[HTTPS]" -->8
+    8-- "3. Insert hold per<br/>room-night: unique (room,<br/>night), 10-min TTL<br/>[SQL, ACID]" -->13
+    8-- "4. Confirm hold: reservation<br/>+ payment<br/>[HTTPS]" -->11
+    11-- "5. Create reservation +<br/>payment (Payments)<br/>[HTTPS API; plan B: files every 15 min]" -->15
+    8-- "6. Hold to booking; room<br/>needed-by date set<br/>[SQL, ACID]" -->13
+    8-. "7. Room needed by (event)<br/>[room-status-events]" .->9
+    9-- "8. Recalculate task<br/>priorities<br/>[SQL]" -->13
+    9-. "9. Push reprioritised task<br/>list<br/>[WebSocket]" .->7
+
+  end
