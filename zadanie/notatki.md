@@ -50,7 +50,7 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q6: rezerwacje z telefonu i walk-in robi recepcjonista w naszej aplikacji, tą samą ścieżką co gość
 - Q7: zakładamy, że niezapłacona rezerwacja trzyma pokój przez 10 minut, potem pokój wraca do sprzedaży
 - Q7: 10 minut to czas, w którym gość płaci u operatora płatności; na legacy nic nie czeka
-- Q10: klucze mobilne dopiero w etapie 2, na start karty jak dziś
+- Q10: zmiana: smart locki i klucze mobilne wchodzą do MVP; jak telefon gościa jest rozładowany albo zamek nie odpowiada, recepcja daje kartę jak dziś
 - Q11: na urządzeniu przy wózku housekeeper widzi listę pokoi do zrobienia w kolejności, z życzeniami gościa i usterkami
 - Q12: usterka blokująca zdejmuje pokój ze sprzedaży, dla gości na ten pokój manager wybiera zastępczy
 - Q13: anulowania i zwroty robi legacy, my tylko zwalniamy pokój
@@ -96,7 +96,7 @@ Z tablicy (zrzut: event-storming/kata-white.png), nazwy jak na ramkach:
 - Synchronizacja (supporting): jedyne miejsce, które wymienia pliki z legacy: od legacy pula pokoi, ceny, rezerwacje i pobyty spoza puli; do legacy nasze rezerwacje z puli, check-iny i checkouty, informacja o płatności; plus porównanie danych
 - Payments (generic): preautoryzację przy rezerwacji robi zewnętrzny operator płatności, a rozliczenie pobytu i zwroty robi legacy; my nie widzimy danych kart
 - raporty managera nie mają ramki, zostają w legacy tak jak dziś
-- klucze mobilne są na kilku ramkach (Visit, Housekeeping, Servis tech), więc to wspólna funkcja, a nie osobny obszar; wchodzą w etapie 2
+- klucze mobilne są na kilku ramkach (Visit, Housekeeping, Servis tech), więc to wspólna funkcja, a nie osobny obszar; są w MVP
 
 Jak się łączą:
 - Rezerwacja to jedyne miejsce, które może zająć pokój na noc, więc Visit i Faraway proszą ją o zmianę stanu pokoju
@@ -108,7 +108,7 @@ Jak się łączą:
 Jak ramki mapują się na serwisy:
 - serwis Rezerwacje: ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją
 - serwis Housekeeping: ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
-- serwis Pobyt: ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; w etapie 2 też klucze mobilne
+- serwis Pobyt: ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; tu jest też adapter smart locków, który wydaje i unieważnia klucze mobilne
 - serwis Synchronizacja: ramka Synchronizacja, czyli import i eksport plików z legacy
 - serwis Oferta: ramka Marketing, tylko do odczytu dla reszty
 
@@ -136,7 +136,7 @@ Top 3:
 
 Ważne, ale poza top 3:
 - spójność danych: podwójnej rezerwacji pilnuje pula i to, że pokój na noc zapisujemy w jednym miejscu, nie wybór stylu
-- bezpieczeństwo: danych kart nie widzimy, przyjmuje je operator płatności, klucze mobilne dopiero w etapie 2, housekeeper dostaje klucz tylko do swojego pokoju na czas sprzątania
+- bezpieczeństwo: danych kart nie widzimy, przyjmuje je operator płatności; klucz mobilny to fizyczny dostęp do pokoju, więc klucz gościa działa tylko w czasie pobytu, housekeeper dostaje klucz tylko do swojego pokoju na czas zadania, a checkout unieważnia klucz od razu
 - łatwość obsługi: ważna, ale to sprawa interfejsu, nie architektury
 - ewolucyjność: handlowcy cały czas coś obiecują, więc nowe rzeczy dokładamy w serwisie, którego dotyczą, albo jako adapter w Synchronizacji
 
@@ -147,7 +147,7 @@ Trade-offy:
 - prostota kontra odporność na awarie: oddajemy część prostoty (pięć serwisów zamiast jednej aplikacji), żeby awaria jednego obszaru nie zatrzymała hotelu
 - prostota kontra spójność: zostajemy przy jednej bazie zamiast bazy na serwis, bo to prostsze i blokada pokoju to jedna transakcja; płacimy tym, że baza jest wspólnym punktem awarii, więc replika
 - integracje kontra aktualność: legacy ma tylko pliki, więc dane o pokojach spoza puli mogą być spóźnione do 15 minut; dla puli to nie problem, bo sprzedajemy ją tylko my
-- bezpieczeństwo kontra termin: smart locki przesuwamy do etapu 2, na start karty jak dziś
+- bezpieczeństwo kontra termin: smart locki wchodzą do MVP, bo firma w nie inwestuje, więc przed sezonem musimy zrobić testy bezpieczeństwa; płacimy czasem w maju
 
 Jak mierzymy:
 - integracje: zmiana formatu pliku legacy zmienia kod tylko w Synchronizacji; testy na przykładowych plikach z legacy przy każdym buildzie
@@ -174,7 +174,7 @@ Jak mierzymy:
 - Jedna baza PostgreSQL z osobnym schematem na serwis, a nie baza na serwis, bo to prostsze i blokadę pokoju na noc załatwia jedna transakcja w serwisie Rezerwacje; serwisy nie czytają cudzych schematów; cena: baza to wspólny punkt awarii, więc replika i backupy
 - Housekeeping wchodzi na pierwszy dzień dla wszystkich pokoi hotelu, a nie później, bo biznes mówi, że to najważniejsze
 - Aplikacja na wózki jako aplikacja webowa działająca offline, a nie natywna, bo urządzenia daje firma, chcemy jeden stack, a Wi-Fi w hotelu się rwie
-- Smart locki w etapie 2 jako adapter w serwisie Pobyt, a nie w MVP, bo nie zdążymy, a klucz w telefonie to fizyczny dostęp do pokoju i musi być dopięty
+- Smart locki w MVP jako adapter w serwisie Pobyt, a nie później, bo firma mocno inwestuje w zamki otwierane telefonem, a dostawca ma gotowe API; cena: więcej pracy przed czerwcem i obowiązkowe testy bezpieczeństwa w maju
 - Jedna platforma dla wszystkich hoteli w regionie USA, a nie instancja na hotel, bo 107 wdrożeń to za dużo; ten sam zestaw serwisów można postawić w drugim regionie
 - Nie optymalizujemy pod skalowanie, bo ruch jest mały; wracamy do tematu, jak przekroczymy ok. 100 rezerwacji na minutę
 
@@ -221,9 +221,10 @@ Smart locki
 - klucz dla housekeepera wydaje Pobyt na prośbę Housekeepingu przy przydziale zadania i unieważnia po zakończeniu zadania
 - powiązanie zamka z pokojem ustawia hotel w konfiguracji Pobytu, a nie Marketing, bo to dane techniczne
 - adapter zamków jest w Pobycie, a nie w Synchronizacji, bo Synchronizacja jest tylko od legacy, a klucze żyją razem z check-in i checkout
-- etap 2 zaczyna się po sezonie, we wrześniu; bezpieczeństwo jest „dopięte”, jak przejdzie test penetracyjny i test unieważniania kluczy
+- przed startem sezonu robimy test penetracyjny i test unieważniania kluczy; bez nich klucze mobilne nie wchodzą na produkcję, a hotele startują na kartach
+- klucz gościa wydajemy przy check-inie i unieważniamy przy checkoucie; zamek dostawcy działa z kluczem zapisanym w telefonie, więc wejście do pokoju nie zależy od tego, czy nasz system działa
 - jak telefon gościa jest rozładowany albo zamek nie odpowiada, recepcja daje kartę, karty zostają jako zapas
-- zakładamy, że biznes akceptuje karty w pierwszym sezonie, bo najważniejszy jest housekeeping; do potwierdzenia
+- w pilocie w maju sprawdzamy klucze mobilne w 2-3 hotelach, zanim wejdą wszędzie
 
 Skalowanie
 - próg 100 rezerwacji na minutę liczymy dla całej platformy w regionie, jako średnią z 15 minut; pilnuje tego dashboard i alert, a odpowiada tech lead
