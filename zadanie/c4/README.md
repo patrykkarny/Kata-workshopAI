@@ -7,7 +7,7 @@ Jedno źródło prawdy: `workspace.dsl` (Structurizr DSL). Obrazków nie rysujem
 | Widok | Co pokazuje |
 |---|---|
 | `C1-SystemContext` | system, gość, personel hotelu, housekeeping i systemy zewnętrzne (legacy z Payments, smart locki w etapie 2, Identity Provider) |
-| `C2-Containers` | pełny widok kontenerów: 3 aplikacje, 5 serwisów, wspólna baza PostgreSQL, magazyn zdjęć |
+| `C2-Containers` | pełny widok kontenerów: 3 aplikacje, 5 serwisów, wspólna baza PostgreSQL, magazyn plików (zdjęcia i lista awaryjna recepcji) |
 | `C2-Slide` | uproszczony C2 na slajd: bez strzałek do bazy, bez Identity Provider, magazynu zdjęć i pushy WebSocket |
 | `D1-KeyFlow` | rezerwacja konkretnego pokoju: blokada na noc (10 min), potwierdzenie i płatność w legacy, priorytety sprzątania |
 | `D2-Checkout` | checkout aż do pokoju gotowego dla następnego gościa |

@@ -7,17 +7,17 @@ graph LR
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; smart-lock<br/>adapter in phase 2."]
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; emergency list<br/>for reception every 15 min<br/>(file + e-mail); smart-lock<br/>adapter in phase 2."]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
       11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja +<br/>calls to Payments: the only<br/>caller of the legacy system;<br/>outbox queue while legacy is<br/>down, nightly data<br/>reconciliation."]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("Shared Database<br/>[Container: PostgreSQL]<br/>One schema per service,<br/>services never read another<br/>service's schema; replica +<br/>backups.")]
+      13[("Shared Database<br/>[Container: PostgreSQL (managed)]<br/>Managed PostgreSQL, one<br/>schema per service, services<br/>never read another service's<br/>schema; replica in a second<br/>zone with automatic failover<br/>in 1-2 min, backups.")]
       style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
       5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room."]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
       6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings."]
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings; computes<br/>when every hotel room is<br/>needed next."]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
       9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff

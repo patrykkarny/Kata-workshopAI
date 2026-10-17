@@ -2,9 +2,11 @@
  * C4 model for the "Room with a View" kata, team White.
  * Source of truth for every decision: zadanie/notatki.md.
  * Style: service-based = five separately deployable domain services + one shared PostgreSQL database,
- * one schema per service. No scaling-out: one platform for the US region, one instance per service.
- * Services call each other over HTTPS; room-status events go through one lightweight queue,
- * "room-status-events", shown as the arrow label (point-to-point, so no broker box).
+ * one schema per service. No scaling-out for load: one platform for the US region; every service runs
+ * at least two instances with rolling deploys, so a deploy never stops bookings or check-ins.
+ * Services call each other over HTTPS; room-status events (guest checked out, room needed by,
+ * room ready / defect) go through one lightweight queue, "room-status-events", shown as the arrow
+ * label (point-to-point, so no broker box).
  * Render: ./zadanie/c4/render.sh   (outputs go to zadanie/c4/out/)
  */
 workspace "Room with a View" "Specific-room booking, room status and housekeeping for 107 resort hotels." {
@@ -24,14 +26,14 @@ workspace "Room with a View" "Specific-room booking, room status and housekeepin
             backOffice = container "Staff Back-office" "Phone and walk-in bookings on the same path as guests, check-in / out, room board, cart queue panel." "TypeScript, React SPA" "WebBrowser"
             cartApp = container "Housekeeping Cart App" "Ordered room list with guest wishes and defects; works offline, sends updates when Wi-Fi is back." "Offline web app, IndexedDB" "Device"
 
-            rezerwacje = container "Rezerwacje Service" "Board frame Rezerwacja + room availability and status: the only place that can take a room for a night (one transaction); 10-min hold for unpaid bookings." "TypeScript, NestJS"
+            rezerwacje = container "Rezerwacje Service" "Board frame Rezerwacja + room availability and status: the only place that can take a room for a night (one transaction); 10-min hold for unpaid bookings; computes when every hotel room is needed next." "TypeScript, NestJS"
             housekeeping = container "Housekeeping Service" "Board frames Housekeeping + Servis tech: one queue for cleaning and repairs, priority from when the room is needed next; API for cart devices." "TypeScript, NestJS"
-            pobyt = container "Pobyt Service (Visit + Faraway)" "Board frames Visit + Faraway: check-in, checkout, replacement room, room complaints; smart-lock adapter in phase 2." "TypeScript, NestJS"
+            pobyt = container "Pobyt Service (Visit + Faraway)" "Board frames Visit + Faraway: check-in, checkout, replacement room, room complaints; emergency list for reception every 15 min (file + e-mail); smart-lock adapter in phase 2." "TypeScript, NestJS"
             synchronizacja = container "Synchronizacja Service (legacy ACL)" "Board frame Synchronizacja + calls to Payments: the only caller of the legacy system; outbox queue while legacy is down, nightly data reconciliation." "TypeScript, NestJS"
             oferta = container "Oferta Service (Marketing)" "Board frame Marketing: room standard, features, photos, descriptions, lock ID; read-only for the rest of the system." "TypeScript, NestJS"
 
-            db = container "Shared Database" "One schema per service, services never read another service's schema; replica + backups." "PostgreSQL" "Database"
-            media = container "Room Media Store" "Room photos, delivered ready-made." "Object storage + CDN" "Database"
+            db = container "Shared Database" "Managed PostgreSQL, one schema per service, services never read another service's schema; replica in a second zone with automatic failover in 1-2 min, backups." "PostgreSQL (managed)" "Database"
+            files = container "File Storage" "Room photos (delivered ready-made) and the emergency list for reception (arrivals, departures, room status; also e-mailed to reception), readable while our services are down." "Object storage + CDN" "Database"
         }
 
         # ---------- External systems ----------
@@ -58,13 +60,14 @@ workspace "Room with a View" "Specific-room booking, room status and housekeepin
 
         # ---------- Relationships: service to service ----------
         sys.rezerwacje -> sys.synchronizacja "Confirms booking + payment" "HTTPS"
-        sys.rezerwacje -> sys.housekeeping "Room needed by" "room-status-events" "Async"
+        sys.rezerwacje -> sys.housekeeping "Room needed by (all rooms)" "room-status-events" "Async"
         sys.pobyt -> sys.housekeeping "Guest checked out" "room-status-events" "Async"
         sys.pobyt -> sys.rezerwacje "Room occupied / vacated" "HTTPS"
         sys.pobyt -> sys.synchronizacja "Check-in / out, refunds" "HTTPS"
-        sys.housekeeping -> sys.rezerwacje "Room ready / defect" "HTTPS"
-        sys.synchronizacja -> sys.rezerwacje "Legacy bookings, stays" "HTTPS"
-        sys.oferta -> sys.media "Stores photos" "S3 API"
+        sys.housekeeping -> sys.rezerwacje "Room ready / defect" "room-status-events" "Async"
+        sys.synchronizacja -> sys.rezerwacje "Legacy bookings, stays (non-pool rooms)" "HTTPS"
+        sys.oferta -> sys.files "Stores photos" "S3 API"
+        sys.pobyt -> sys.files "Writes emergency list every 15 min" "S3 API"
 
         # ---------- Relationships: data (each service owns its own schema) ----------
         sys.rezerwacje -> sys.db "Room-nights, status" "SQL, ACID" "Data"
@@ -94,10 +97,10 @@ workspace "Room with a View" "Specific-room booking, room status and housekeepin
             title "[C2] Container diagram for Room with a View (service-based)"
         }
 
-        # C2 for the slide: no database fan-in, Identity Provider, media store, WebSocket push-backs or cart-queue panel
+        # C2 for the slide: no database fan-in, Identity Provider, file storage, WebSocket push-backs or cart-queue panel
         container sys "C2-Slide" {
             include *
-            exclude idp sys.media
+            exclude idp sys.files
             exclude relationship.tag==Data
             exclude relationship.tag==Push
             exclude "sys.backOffice -> sys.housekeeping"
@@ -129,7 +132,7 @@ workspace "Room with a View" "Specific-room booking, room status and housekeepin
             sys.pobyt -> sys.housekeeping "Guest checked out (event)"
             sys.housekeeping -> sys.cartApp "Push new task (priority: next arrival)"
             sys.cartApp -> sys.housekeeping "Room cleaned (offline queue, idempotent)"
-            sys.housekeeping -> sys.rezerwacje "Room ready"
+            sys.housekeeping -> sys.rezerwacje "Room ready (event)"
             sys.rezerwacje -> sys.backOffice "Push: room ready for arrival"
             autoLayout tb
         }

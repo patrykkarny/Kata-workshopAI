@@ -18,15 +18,15 @@ graph TB
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["<div style='font-weight: bold'>Pobyt Service (Visit + Faraway)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Visit + Faraway:<br />check-in, checkout,<br />replacement room, room<br />complaints; smart-lock<br />adapter in phase 2.</div>"]
+      10["<div style='font-weight: bold'>Pobyt Service (Visit + Faraway)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Visit + Faraway:<br />check-in, checkout,<br />replacement room, room<br />complaints; emergency list<br />for reception every 15 min<br />(file + e-mail); smart-lock<br />adapter in phase 2.</div>"]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
       11["<div style='font-weight: bold'>Synchronizacja Service (legacy ACL)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Synchronizacja +<br />calls to Payments: the only<br />caller of the legacy system;<br />outbox queue while legacy is<br />down, nightly data<br />reconciliation.</div>"]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
       12["<div style='font-weight: bold'>Oferta Service (Marketing)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Marketing: room<br />standard, features, photos,<br />descriptions, lock ID;<br />read-only for the rest of the<br />system.</div>"]
       style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("<div style='font-weight: bold'>Shared Database</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL]</div><div style='font-size: 80%; margin-top:10px'>One schema per service,<br />services never read another<br />service's schema; replica +<br />backups.</div>")]
+      13[("<div style='font-weight: bold'>Shared Database</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL (managed)]</div><div style='font-size: 80%; margin-top:10px'>Managed PostgreSQL, one<br />schema per service, services<br />never read another service's<br />schema; replica in a second<br />zone with automatic failover<br />in 1-2 min, backups.</div>")]
       style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      14[("<div style='font-weight: bold'>Room Media Store</div><div style='font-size: 70%; margin-top: 0px'>[Container: Object storage + CDN]</div><div style='font-size: 80%; margin-top:10px'>Room photos, delivered<br />ready-made.</div>")]
+      14[("<div style='font-weight: bold'>File Storage</div><div style='font-size: 70%; margin-top: 0px'>[Container: Object storage + CDN]</div><div style='font-size: 80%; margin-top:10px'>Room photos (delivered<br />ready-made) and the emergency<br />list for reception (arrivals,<br />departures, room status; also<br />e-mailed to reception),<br />readable while our services<br />are down.</div>")]
       style 14 fill:#438dd5,stroke:#2e6295,color:#ffffff
       5["<div style='font-weight: bold'>Guest Web App</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React PWA]</div><div style='font-size: 80%; margin-top:10px'>Room photos and descriptions,<br />availability; books a room<br />type or a specific room.</div>"]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
@@ -34,7 +34,7 @@ graph TB
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
       7["<div style='font-weight: bold'>Housekeeping Cart App</div><div style='font-size: 70%; margin-top: 0px'>[Container: Offline web app, IndexedDB]</div><div style='font-size: 80%; margin-top:10px'>Ordered room list with guest<br />wishes and defects; works<br />offline, sends updates when<br />Wi-Fi is back.</div>"]
       style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); 10-min hold for<br />unpaid bookings.</div>"]
+      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); 10-min hold for<br />unpaid bookings; computes<br />when every hotel room is<br />needed next.</div>"]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
       9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Housekeeping +<br />Servis tech: one queue for<br />cleaning and repairs,<br />priority from when the room<br />is needed next; API for cart<br />devices.</div>"]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
@@ -52,13 +52,14 @@ graph TB
     9-. "<div>Pushes tasks</div><div style='font-size: 70%'>[WebSocket]</div>" .->7
     8-. "<div>Pushes room status</div><div style='font-size: 70%'>[WebSocket]</div>" .->6
     8-- "<div>Confirms booking + payment</div><div style='font-size: 70%'>[HTTPS]</div>" -->11
-    8-. "<div>Room needed by</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
+    8-. "<div>Room needed by (all rooms)</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
     10-. "<div>Guest checked out</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
     10-- "<div>Room occupied / vacated</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
     10-- "<div>Check-in / out, refunds</div><div style='font-size: 70%'>[HTTPS]</div>" -->11
-    9-- "<div>Room ready / defect</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
-    11-- "<div>Legacy bookings, stays</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
+    9-. "<div>Room ready / defect</div><div style='font-size: 70%'>[room-status-events]</div>" .->8
+    11-- "<div>Legacy bookings, stays<br />(non-pool rooms)</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
     12-- "<div>Stores photos</div><div style='font-size: 70%'>[S3 API]</div>" -->14
+    10-- "<div>Writes emergency list every<br />15 min</div><div style='font-size: 70%'>[S3 API]</div>" -->14
     8-- "<div>Room-nights, status</div><div style='font-size: 70%'>[SQL, ACID]</div>" -->13
     9-- "<div>Tasks</div><div style='font-size: 70%'>[SQL]</div>" -->13
     10-- "<div>Stays</div><div style='font-size: 70%'>[SQL]</div>" -->13
