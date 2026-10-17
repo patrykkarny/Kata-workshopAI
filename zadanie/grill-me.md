@@ -347,3 +347,59 @@ Które ramki z tablicy muszą dalej działać, gdy inna ramka przestanie działa
 **Q59. Co blokuje wybór architektury**
 Których odpowiedzi brakuje wam, żeby wybrać styl architektury, i które z otwartych pytań muszą paść przed tą decyzją?
 *Skąd:* sekcja Domena zawiera tylko „wyciągnij bounded contexty ze screena”; w notatkach nie ma jeszcze nic o stylu architektury
+
+## Runda 5 (2026-10-17)
+
+### Pytania do: Room with a View, specyfikacja, C4 i prezentacja
+
+**Co przeczytałem:** `notatki.md`, `spec/01-prd.md`, `spec/02-domain.md`, `spec/03-characteristics.md`, `c4/workspace.dsl`, `c4/README.md`, `prezentacja.md`. Nie pytam ponownie o Q37 i inne pytania bez odpowiedzi.
+
+### Zacznijcie od tych 5
+
+**Q60. Wspólna baza a odporność na awarie**
+Gdy główna instancja PostgreSQL przestaje działać, które z pięciu serwisów dalej obsługują hotel, i czym ten scenariusz różni się od odrzuconego monolitu, o którym piszecie „jak padnie aplikacja, pada wszystko”?
+*Skąd:* Decyzje: „baza to wspólny punkt awarii, więc replika i backupy”, „Odrzuciliśmy modularny monolit i microkernel”; top 3: odporność na awarie
+
+**Q61. Jedna instancja na serwis**
+Co dzieje się z rezerwacjami i check-inami w sezonie w czasie wdrożenia nowej wersji albo restartu jedynej instancji serwisu Rezerwacje?
+*Skąd:* `workspace.dsl`: „one instance per service”; Decyzje: „awaria jednego obszaru nie może zatrzymać hotelu”
+
+**Q62. Housekeeping, gdy Rezerwacje leżą**
+Housekeeping wysyła „Room ready / defect” do Rezerwacji przez HTTPS. Co dzieje się z tym zgłoszeniem i ze statusem pokoju widocznym na recepcji, gdy Rezerwacje leżą, skoro „housekeeping dalej działa”?
+*Skąd:* C2: `housekeeping -> rezerwacje "Room ready / defect" HTTPS`; top 3, punkt 3
+
+**Q63. „Potrzebny o” dla pokoi spoza puli**
+Skąd Housekeeping zna termin, na kiedy pokój spoza puli ma być gotowy, i która strzałka na C2 to przenosi?
+*Skąd:* FR-05 (Rezerwacje decydują o pokojach z puli), FR-12, FR-17; C2: `synchronizacja -> rezerwacje "Legacy bookings, stays"`
+
+**Q64. Piloty czy wszystkie hotele**
+Ile hoteli obsługuje system w pierwszym dniu sezonu: hotele pilotażowe czy wszystkie 107?
+*Skąd:* top 3: „mierzymy tym, że MVP chodzi w hotelach pilotażowych przed sezonem”; Decyzje: „Housekeeping wchodzi na pierwszy dzień dla wszystkich pokoi hotelu”; Q30: „wszystkie”
+
+### Awarie i ścieżki zapasowe
+
+**Q65. Płatność odrzucona po awarii legacy**
+Co dzieje się z gościem i z pokojem, gdy po powrocie legacy płatność z outboxa zostanie odrzucona, a gość już dawno zamknął stronę?
+*Skąd:* D3-LegacyDown; FR-06
+
+**Q66. Lista awaryjna recepcji**
+Gdzie powstaje i gdzie leży lista odświeżana co kwadrans, skoro ma działać, gdy cały wasz system leży, i jak ręcznie dopisane check-iny wracają potem do Rezerwacji i legacy?
+*Skąd:* FR-18 / Q44; w `workspace.dsl` nie ma elementu dla tej listy
+
+### Luki w specyfikacji
+
+**Q67. Przydział pokoju dzień przed przyjazdem**
+Co lub kto uruchamia przydział pokoju dzień przed przyjazdem, w którym serwisie, i co się dzieje, gdy w tym momencie nie ma wolnego pokoju danego typu?
+*Skąd:* FR-02; tabela Modules w `02-domain.md` ma pustą kolumnę FRs
+
+**Q68. Wymagania bez serwisu**
+Do którego serwisu należą FR-02, FR-09, FR-15 i FR-18?
+*Skąd:* `02-domain.md`, tabela Modules: FRs „Brak w notatkach.” dla M-01 do M-05
+
+**Q69. Personel hotelu**
+Zadanie mówi „Hotel staff: less than 20”. Czy to liczba na hotel, czy w ogóle, i ile z tych osób to housekeeperzy z urządzeniem przy wózku?
+*Skąd:* zadanie, 01 Users; PRD, Actors: skala dla personelu „Brak w notatkach.”
+
+**Q70. Gwiazdki w prezentacji**
+Skąd pochodzi ocena „event-driven 10 gwiazdek, service-based 9” i na których charakterystykach event-driven dostaje więcej?
+*Skąd:* `prezentacja.md`, sekcja 5; w `notatki.md` tej oceny nie ma, a prezentacja mówi „Wszystko poniżej bierzemy z notatki.md”

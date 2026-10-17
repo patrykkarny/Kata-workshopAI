@@ -1,29 +1,40 @@
-# Architecture Characteristics: [Project name]
+# Architecture Characteristics: Room with a View
 
 Status: Draft  
-Updated: YYYY-MM-DD  
-Authors:
+Updated: 2026-10-17  
+Authors: Zespół White (Marek, Patryk, Mariusz, Kamil)
 
 ## Top 3
 
 | # | Characteristic | Why it drives the architecture | Evidence | Source |
 |---|---|---|---|---|
+| 1 | Prostota (simplicity) | chodzi o prostą architekturę, nie o łatwość obsługi; system ma działać w czerwcu albo czekamy rok i robi go normalny zespół, więc mało serwisów, jedna baza, bez egzotycznej technologii; mierzymy tym, że MVP chodzi w hotelach pilotażowych przed sezonem | C-01 | notatki, grill-me Q31 |
+| 2 | Integracje (Interoperability) | prawie wszystko idzie przez cudze systemy: legacy, smart locki, urządzenia przy wózkach, cztery kanały; zmiana API legacy ma ruszać tylko Synchronizację, nie resztę systemu | C-02, C-03, FR-03, FR-13 | notatki, grill-me Q31 |
+| 3 | Odporność na awarie (fault tolerance; Robustness) | w sezonie przy 90% obłożenia hotel nie może stanąć; jak legacy nie odpowiada przez pół godziny, check-in, checkout i sprzątanie działają dalej, a płatności czekają w kolejce; jak padnie serwis rezerwacji, housekeeping dalej działa | C-01, FR-06 | notatki, grill-me Q31 |
 
 ## Per Module
 
 | ID | Module | Characteristic | Why | Evidence | How we measure | Source |
 |---|---|---|---|---|---|---|
+| AC-01 | M-04 Synchronizacja | Integracje (Interoperability) | zmiana API legacy ma ruszać tylko Synchronizację, nie resztę systemu | C-02 | _Brak w notatkach._ | notatki |
+| AC-02 | M-04 Synchronizacja | Odporność na awarie (Robustness) | jak legacy nie odpowiada, płatności czekają w kolejce | FR-06 | legacy nie odpowiada przez pół godziny | notatki |
+| AC-03 | M-03 Pobyt | Odporność na awarie (Robustness) | jak legacy nie odpowiada, check-in i checkout działają dalej | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny | notatki |
+| AC-04 | M-02 Housekeeping | Odporność na awarie (Robustness) | jak legacy nie odpowiada, sprzątanie działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny | notatki |
 
 ## Considered, Not Driving
 
 | Characteristic | Why not driving | Source |
 |---|---|---|
+| Spójność danych (Data consistency) | ważna, ale poza top 3: podwójnej rezerwacji pilnuje pula i to, że pokój na noc zapisujemy w jednym miejscu, nie wybór stylu | notatki |
+| Bezpieczeństwo (Security) | ważne, ale poza top 3: dane kart zostają w legacy, klucze mobilne dopiero w etapie 2, housekeeper dostaje klucz tylko do swojego pokoju na czas sprzątania | notatki |
+| Łatwość obsługi (Usability) | ważna, ale to sprawa interfejsu, nie architektury | notatki |
+| Ewolucyjność (Extensibility) | ważna, ale poza top 3: handlowcy cały czas coś obiecują, więc nowe rzeczy dokładamy w serwisie, którego dotyczą, albo jako adapter w Synchronizacji | notatki |
+| Skalowalność i elastyczność (Scalability, Elasticity) | odrzucone: jedna rezerwacja co 14 sekund to mało, ruch jest mały, a „peak season” w zadaniu chodzi o termin, nie o ruch | notatki |
 
 ## Trade-offs
 
-- [Characteristic A] vs [Characteristic B]: what the team gives up and where. (Source)
+_Brak w notatkach._
 
 ## Open Questions
 
-| ID | Question | Source |
-|---|---|---|
+_Brak w notatkach._
