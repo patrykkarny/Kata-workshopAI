@@ -17,12 +17,12 @@ Proponujemy **service-based: pięć serwisów domenowych i jedna baza**, bo syst
 
 ## 2. Top 3 charakterystyki (ok. 40 s)
 
-1. **Prostota**: architektura ma być prosta, nie tylko obsługa; działa w czerwcu albo czekamy rok, więc mało serwisów, jedna baza, bez egzotycznej technologii
+1. **Prostota**: chodzi o prostą architekturę, nie o łatwość obsługi; działa w czerwcu albo czekamy rok, więc mało serwisów, jedna baza, bez egzotycznej technologii
 2. **Skalowalność**: wzrost, nie skoki; firma dokłada hotele, a check-iny i checkouty wszędzie wypadają w tych samych godzinach; nowy hotel to konfiguracja, nie kod; sprawdzamy testem obciążenia na 3x najgorszą godzinę
-3. **Odporność na awarie**: przy 90% obłożenia hotel nie może stanąć; nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie czeka na legacy na żywo
+3. **Odporność na awarie**: przy 90% obłożenia hotel nie może stanąć; nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie czeka na legacy na żywo, a jak padnie serwis rezerwacji, sprzątanie działa dalej
 
 - świadomie odrzuciliśmy elastyczność, czyli automatyczne skalowanie: szczyt sezonu znamy z góry
-- integracje są ważne, ale poza top 3: każdą trzymamy w jednym serwisie
+- integracje są ważne, ale poza top 3: każdą trzymamy w jednym miejscu
 
 ## 3. C1: kontekst (ok. 20 s)
 
@@ -37,38 +37,39 @@ Proponujemy **service-based: pięć serwisów domenowych i jedna baza**, bo syst
 
 ![C2 na slajd](c4/out/png/C2-Slide.png)
 
-Pięć serwisów, każdy to jedna lub dwie ramki z naszej tablicy:
+Serwisy nazywamy po angielsku, a w nawiasie są ramki z naszej tablicy:
 
-- **Rezerwacje**: ramka Rezerwacja razem z dostępnością i statusem pokoju; jedyne miejsce, które może zająć pokój na noc, bo to musi być jedna transakcja
-- **Housekeeping**: ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
-- **Pobyt**: ramki Visit i Faraway, czyli początek i koniec tego samego pobytu; tu jest też adapter smart locków, który wydaje i unieważnia klucze mobilne
-- **Synchronizacja**: jedyny serwis, który wymienia pliki z legacy
-- **Oferta**: ramka Marketing, zdjęcia i opisy, tylko do odczytu dla reszty
-- wszystkie kanały (web, mobile, telefon, walk-in) idą przez jedno API Rezerwacji; recepcjonista rezerwuje tą samą ścieżką co gość
+- **Reservations Service** (Rezerwacja + dostępność i status pokoju): jedyne miejsce, które może zająć pokój na noc, bo to musi być jedna transakcja
+- **Housekeeping Service** (Housekeeping + Servis tech): to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
+- **Stay Service** (Visit + Faraway): początek i koniec tego samego pobytu; tu jest też adapter smart locków, który wydaje i unieważnia klucze mobilne
+- **Legacy Sync Service** (Synchronizacja): jedyny serwis, który wymienia pliki z legacy
+- **Room Offer Service** (Marketing): zdjęcia, plany pięter i cechy pokoi, tylko do odczytu dla reszty
+- wszystkie kanały (web, mobile, telefon, walk-in) idą przez jedno API Reservations Service; recepcjonista rezerwuje tą samą ścieżką co gość
+- przerywane strzałki to zmiany statusu pokoju przez kolejkę zdarzeń: check-in, checkout i sprzątanie działają dalej, nawet jak Reservations Service leży
 - aplikacja na wózki to aplikacja webowa działająca offline, bo Wi-Fi w hotelu się rwie
 
 ## 5. Kluczowe decyzje i ich cena (ok. 60 s)
 
 **Styl: service-based**
 
-- w arkuszu stylów dla naszego top 3 event-driven i mikroserwisy mają po 11 gwiazdek, service-based 10; mówimy to wprost
-- mimo to service-based: oba są najsłabsze w prostocie, a termin to czerwiec; event-driven daje spójność ostateczną tam, gdzie blokada pokoju potrzebuje transakcji; a przy ok. 21 rezerwacjach na minutę w najgorszej godzinie wystarczy dokładać instancje jednemu serwisowi
+- w arkuszu stylów dla naszego top 3 event-driven i mikroserwisy mają po 11 punktów, service-based 10; mówimy to wprost
+- mimo to service-based: oba są słabsze w prostocie, a termin to czerwiec; event-driven daje spójność ostateczną tam, gdzie blokada pokoju potrzebuje transakcji; a przy ok. 21 rezerwacjach na minutę w najgorszej godzinie wystarczy dokładać instancje jednemu serwisowi
 - modularny monolit i microkernel są tańsze i prostsze, ale jak padnie aplikacja, pada wszystko, a skalować da się tylko całość
 - cena: pięć rzeczy do wdrożenia zamiast jednej i wywołania po sieci między serwisami
 
 **Jedna baza PostgreSQL, osobny schemat na serwis**
 
-- prostsze niż baza na serwis, a blokadę pokoju na noc załatwia jedna transakcja w Rezerwacjach
+- prostsze niż baza na serwis, a blokadę pokoju na noc załatwia jedna transakcja w Reservations Service
 - serwisy nie czytają cudzych schematów
-- cena: baza to wspólny punkt awarii, więc replika i backupy
+- cena: baza to wspólny punkt awarii, więc replika w drugiej strefie z przełączeniem w 1-2 minuty i backupy
 
-**Legacy przez pliki, schowane za Synchronizacją**
+**Legacy przez pliki, schowane za Legacy Sync Service**
 
 - pliki w obie strony co 15 minut: od legacy pula, ceny i pobyty spoza puli, do legacy nasze rezerwacje, check-iny, checkouty i numer preautoryzacji; raz dziennie pełne porównanie
 - płatność przy rezerwacji to preautoryzacja u operatora płatności, a pobyt i zwroty rozlicza legacy przy wymeldowaniu jak dziś
 - cena: dane o pokojach spoza puli mogą być spóźnione do 15 minut; dla puli to nie problem, bo sprzedajemy ją tylko my
 
-**Smart locki w MVP, adapter w Pobycie**
+**Smart locki w MVP, adapter w Stay Service**
 
 - firma inwestuje w zamki otwierane telefonem; klucz w telefonie otwiera zamek, nawet jak nasz system leży, a karty w recepcji zostają jako zapas
 - cena: więcej pracy przed czerwcem i obowiązkowe testy bezpieczeństwa w maju
@@ -84,8 +85,8 @@ Pięć serwisów, każdy to jedna lub dwie ramki z naszej tablicy:
 
 ## Peer review: pytania i odpowiedzi
 
-**Dlaczego nie event-driven albo mikroserwisy, skoro mają więcej gwiazdek?**
-- to jeden punkt różnicy, a oba są najsłabsze w prostocie, która decyduje, czy zdążymy na czerwiec
+**Dlaczego nie event-driven albo mikroserwisy, skoro mają więcej punktów?**
+- to jeden punkt różnicy, a oba są słabsze w prostocie, która decyduje, czy zdążymy na czerwiec
 - event-driven daje spójność ostateczną, a zajęcie pokoju na noc potrzebuje transakcji
 - mikroserwisy skalują się najlepiej, ale przy ok. 21 rezerwacjach na minutę w najgorszej godzinie wystarczy dokładać instancje jednemu serwisowi
 
@@ -100,25 +101,31 @@ Pięć serwisów, każdy to jedna lub dwie ramki z naszej tablicy:
 - jak przekroczymy ok. 100 rezerwacji na minutę, dokładamy instancje temu serwisowi, który się dławi
 
 **Wspólna baza to punkt awarii?**
-- tak, świadomie: replika i backupy; każdy serwis ma swój schemat i nie czyta cudzych
+- tak, świadomie: replika w drugiej strefie i backupy; każdy serwis ma swój schemat i nie czyta cudzych
+- w czasie przełączania (1-2 minuty) web, mobile i telefon dostają „spróbuj za chwilę”, zdjęcia pokoi idą z CDN, a wózki zapisują offline
+
+**Co jak padnie Reservations Service?**
+- Stay Service i Housekeeping Service trzymają u siebie kopię tego, czego potrzebują (przyjazdy na dziś, status pokoju, „pokój potrzebny o”), i pracują na ostatnim znanym stanie
+- check-in, checkout, „pokój gotowy” i usterki czekają w kolejce zdarzeń i dochodzą, jak Reservations Service wróci
+- sprawdzamy to testem: wyłączamy Reservations Service na 30 minut, a check-in, checkout i sprzątanie działają
 
 **Co jak legacy leży?**
 - nic u nas nie czeka na legacy na żywo: rezerwacja, płatność, check-in, checkout i sprzątanie działają dalej
-- Synchronizacja alarmuje, że nie przyszedł plik, a następny plik nadrabia zaległości; ten sam plik wczytany dwa razy nic nie psuje
+- Legacy Sync Service alarmuje, że nie przyszedł plik, a następny plik nadrabia zaległości; ten sam plik wczytany dwa razy nic nie psuje
 - wymeldowania z pokoi spoza puli recepcja może w tym czasie wpisać ręcznie
 
 **Jak płatności bez API?**
 - gość płaci na stronie zewnętrznego operatora płatności (preautoryzacja), my danych kart nie widzimy; przy rezerwacji telefonicznej recepcja wysyła link SMS-em albo mailem
 - numer preautoryzacji idzie do legacy w pliku, a legacy rozlicza pobyt i zwroty przy wymeldowaniu jak dziś
-- jak operator odrzuci kartę, gość od razu podaje inną; jak nie zapłaci w 10 minut, pokój wraca do sprzedaży
+- jak operator odrzuci kartę, gość od razu podaje inną; jak nie zapłaci w 10 minut, pokój wraca do sprzedaży, a do gości VIP dzwoni recepcja
 
 **Czy pliki co 15 minut nie dają podwójnych rezerwacji?**
 - nie: pulę sprzedajemy tylko my, legacy jej nie sprzedaje
-- o pokoju z puli na daną noc decyduje jedna transakcja w Rezerwacjach
+- o pokoju z puli na daną noc decyduje jedna transakcja w Reservations Service
 - spóźnione mogą być tylko dane o pokojach spoza puli, a tych nie sprzedajemy
 
 **Co jak padnie cały nasz system?**
-- recepcja ma odświeżaną co kwadrans listę przyjazdów, wyjazdów i statusów, robi check-in ręcznie i dopisuje potem
+- recepcja ma odświeżaną co kwadrans listę przyjazdów, wyjazdów i statusów (robi ją Stay Service, plik w magazynie plików i mail), robi check-in ręcznie i wprowadza go potem w aplikacji
 - klucz zapisany w telefonie dalej otwiera drzwi
 
 **Co jak wózek traci Wi-Fi?**
@@ -128,7 +135,8 @@ Pięć serwisów, każdy to jedna lub dwie ramki z naszej tablicy:
 - nie, dla wszystkich pokoi hotelu od pierwszego dnia; dla pokoi spoza puli bierzemy zameldowania i wymeldowania z pliku z legacy co 15 minut
 
 **Wybrany pokój nie jest gotowy albo ma usterkę?**
-- usterka blokująca zdejmuje pokój ze sprzedaży; manager wybiera gościom pokój zastępczy, także przy check-in
+- jak pokój nie jest gotowy, przy check-inie proponujemy zastępczy, a decyduje manager hotelu
+- usterka blokująca zdejmuje pokój ze sprzedaży, a gościom na ten pokój manager wybiera zastępczy
 
 **Gdzie bezpieczeństwo?**
 - danych kart nie widzimy, przyjmuje je operator płatności

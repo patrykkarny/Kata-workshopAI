@@ -7,37 +7,37 @@ graph LR
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["<div style='font-weight: bold'>Pobyt Service (Visit + Faraway)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Visit + Faraway:<br />check-in, checkout,<br />replacement room, room<br />complaints; keeps its own<br />copy of today's arrivals and<br />room status (events from<br />Rezerwacje) and builds the<br />reception emergency list from<br />it every 15 min (file +<br />e-mail); smart-lock adapter:<br />lock-to-room mapping, issues<br />and revokes mobile keys<br />(guest: check-in to checkout;<br />housekeeper: assigned room,<br />for the task).</div>"]
+      10["<div style='font-weight: bold'>Stay Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames: Visit +<br />Faraway. Check-in, checkout,<br />emergency list; smart-lock<br />adapter, mobile keys in MVP.</div>"]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      11["<div style='font-weight: bold'>Synchronizacja Service (legacy ACL)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Synchronizacja:<br />the only place that swaps<br />files with legacy, both ways<br />every 15 min. In: room pool<br />we may sell, prices, non-pool<br />bookings, check-ins and<br />check-outs. Out: our pool<br />bookings with guest data,<br />check-ins / outs, payment<br />pre-authorisation number.<br />Numbered files, idempotent<br />import, alert on a missing<br />file; nightly full comparison<br />(pool: we win, non-pool:<br />legacy wins).</div>"]
+      11["<div style='font-weight: bold'>Legacy Sync Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame: Synchronizacja.<br />Only link to legacy: files<br />both ways every 15 min,<br />nightly comparison.</div>"]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["<div style='font-weight: bold'>Guest Web App</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React PWA]</div><div style='font-size: 80%; margin-top:10px'>Room photos and descriptions,<br />availability; books a room<br />type or a specific room;<br />sends the guest to the<br />payment operator's page.</div>"]
+      5["<div style='font-weight: bold'>Guest Web App</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React PWA]</div><div style='font-size: 80%; margin-top:10px'>Room photos and floor plans;<br />books a room type or a<br />specific room.</div>"]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["<div style='font-weight: bold'>Staff Back-office</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React SPA]</div><div style='font-size: 80%; margin-top:10px'>Phone and walk-in bookings on<br />the same path as guests<br />(phone: the guest gets a<br />payment link), check-in /<br />out, room board, cart queue<br />panel.</div>"]
+      6["<div style='font-weight: bold'>Staff Back-office</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React SPA]</div><div style='font-size: 80%; margin-top:10px'>Phone and walk-in bookings,<br />check-in / out, room board,<br />cart queue panel.</div>"]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); holds the room<br />10 min while the guest<br />pre-authorises the payment at<br />the payment operator,<br />confirmed by webhook; never<br />waits for legacy; computes<br />when every hotel room is<br />needed next.</div>"]
+      8["<div style='font-weight: bold'>Reservations Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame: Rezerwacja +<br />room status. Source of truth<br />for room-nights; 10-min hold<br />until pre-auth.</div>"]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Housekeeping +<br />Servis tech: one queue for<br />cleaning and repairs,<br />priority from when the room<br />is needed next; API for cart<br />devices. Keeps its own copy<br />of room status and room<br />needed-by (events from<br />Rezerwacje), so it works on<br />the last known state while<br />Rezerwacje is down.</div>"]
+      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames: Housekeeping +<br />Servis tech. One cleaning and<br />repair queue, prioritised by<br />room needed-by.</div>"]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos and<br />descriptions; books a room<br />type or a specific room on<br />web or mobile.</div>"]
+    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos; books a<br />room type or a specific room<br />on web or mobile.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings with a payment link,<br />check-in / out), hotel<br />manager (replacement rooms),<br />housekeeping supervisor (cart<br />queues).</div>"]
+    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (bookings,<br />check-in / out), hotel<br />manager, housekeeping<br />supervisor (cart queues).</div>"]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Existing system: non-pool<br />reservations, prices, stay<br />settlement and refunds at<br />checkout, cancellations,<br />manager reports. No API, only<br />file exchange. Blocks a room<br />pool that only we sell.</div>"]
+    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Prices, non-pool stays,<br />settlement, refunds, reports.<br />No API, files only; blocks a<br />pool only we sell.</div>"]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>External payment operator:<br />hosted payment page, card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
+    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Hosted payment page; card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
-    11-- "<div>1. No file from legacy:<br />alert, nothing else waits</div><div style='font-size: 70%'>[SFTP, files every 15 min]</div>" -->15
+    11-- "<div>1. No file from legacy:<br />alert, nothing else waits</div><div style='font-size: 70%'>[SFTP, every 15 min]</div>" -->15
     1-- "<div>2. Books a specific room</div><div style='font-size: 70%'>[HTTPS]</div>" -->5
     5-- "<div>3. POST /bookings: hold<br />room-nights</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
-    8-- "<div>4. Pre-authorisation as<br />usual, no legacy</div><div style='font-size: 70%'>[HTTPS, webhook]</div>" -->17
-    2-- "<div>5. Checks guests out;<br />non-pool checkouts entered by<br />hand</div><div style='font-size: 70%'>[HTTPS]</div>" -->6
+    8-- "<div>4. Pre-authorisation as usual</div><div style='font-size: 70%'>[HTTPS, webhook]</div>" -->17
+    2-- "<div>5. Checks guests out;<br />non-pool checkouts by hand</div><div style='font-size: 70%'>[HTTPS]</div>" -->6
     6-- "<div>6. POST /stays/{id}/checkout</div><div style='font-size: 70%'>[HTTPS]</div>" -->10
-    10-. "<div>7. Guest checked out:<br />cleaning starts as usual</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
-    11-- "<div>8. Legacy back: next numbered<br />file catches up</div><div style='font-size: 70%'>[SFTP, files every 15 min]</div>" -->15
-    11-- "<div>9. Idempotent import: same<br />file twice changes nothing</div><div style='font-size: 70%'>[HTTPS, every 15 min]</div>" -->8
+    10-. "<div>7. Guest checked out:<br />cleaning as usual</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
+    11-- "<div>8. Legacy back: next numbered<br />file catches up</div><div style='font-size: 70%'>[SFTP, every 15 min]</div>" -->15
+    11-- "<div>9. Idempotent import: same<br />file twice is harmless</div><div style='font-size: 70%'>[HTTPS, every 15 min]</div>" -->8
 
   end

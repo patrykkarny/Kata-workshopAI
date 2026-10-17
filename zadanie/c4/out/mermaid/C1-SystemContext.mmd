@@ -4,21 +4,21 @@ graph LR
   subgraph diagram ["[C1] System Context diagram for Room with a View"]
     style diagram fill:#ffffff,stroke:#ffffff
 
-    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos and<br />descriptions; books a room<br />type or a specific room on<br />web or mobile.</div>"]
+    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos; books a<br />room type or a specific room<br />on web or mobile.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Existing system: non-pool<br />reservations, prices, stay<br />settlement and refunds at<br />checkout, cancellations,<br />manager reports. No API, only<br />file exchange. Blocks a room<br />pool that only we sell.</div>"]
+    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Prices, non-pool stays,<br />settlement, refunds, reports.<br />No API, files only; blocks a<br />pool only we sell.</div>"]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["<div style='font-weight: bold'>Smart Lock Platform</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Lock vendor API: mobile keys<br />that open doors from a phone.<br />A key stored in the phone<br />opens the lock even while our<br />system is down; key cards at<br />reception are the fallback.</div>"]
+    16["<div style='font-weight: bold'>Smart Lock Platform</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Mobile keys via vendor API; a<br />key in the phone works even<br />while we are down.</div>"]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>External payment operator:<br />hosted payment page, card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
+    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Hosted payment page; card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    18["<div style='font-weight: bold'>Identity Provider</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Signs in guests and staff<br />(OIDC: OpenID Connect).</div>"]
+    18["<div style='font-weight: bold'>Identity Provider</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Signs in guests and staff<br />(OIDC).</div>"]
     style 18 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings with a payment link,<br />check-in / out), hotel<br />manager (replacement rooms),<br />housekeeping supervisor (cart<br />queues).</div>"]
+    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (bookings,<br />check-in / out), hotel<br />manager, housekeeping<br />supervisor (cart queues).</div>"]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
-    3["<div style='font-weight: bold'>Housekeeping & Maintenance Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Hotel staff on cleaning<br />carts: clean and repair rooms<br />in priority order.</div>"]
+    3["<div style='font-weight: bold'>Housekeeping & Maintenance Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Clean and repair rooms in<br />priority order from cart<br />devices.</div>"]
     style 3 fill:#6b8fb3,stroke:#052e56,color:#ffffff
-    4["<div style='font-weight: bold'>Room with a View</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Lets guests pick a specific<br />room, keeps room-nights and<br />room status, directs<br />housekeeping by priority.<br />Service-based, five services.</div>"]
+    4["<div style='font-weight: bold'>Room with a View</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Guests pick a specific room;<br />keeps room-nights and room<br />status; directs housekeeping<br />by priority.</div>"]
     style 4 fill:#1168bd,stroke:#0b4884,color:#ffffff
 
     1-- "<div>Browses, books</div><div style='font-size: 70%'>[HTTPS]</div>" -->4
@@ -26,7 +26,7 @@ graph LR
     3-- "<div>Gets tasks, reports done /<br />defect</div><div style='font-size: 70%'>[Touch UI]</div>" -->4
     4-- "<div>Guest pays (pre-auth)</div><div style='font-size: 70%'>[HTTPS redirect]</div>" -->17
     4-- "<div>Signs in</div><div style='font-size: 70%'>[OIDC]</div>" -->18
+    4-- "<div>Swaps files both ways</div><div style='font-size: 70%'>[SFTP, every 15 min]</div>" -->15
     4-- "<div>Issues / revokes mobile keys</div><div style='font-size: 70%'>[Vendor API, HTTPS]</div>" -->16
-    4-- "<div>Swaps files both ways</div><div style='font-size: 70%'>[SFTP, files every 15 min]</div>" -->15
 
   end

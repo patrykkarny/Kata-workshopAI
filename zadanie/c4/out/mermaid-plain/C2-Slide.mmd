@@ -1,38 +1,38 @@
 graph TB
   linkStyle default fill:#ffffff
 
-  subgraph diagram ["[C2] Kontenery (widok na slajd)"]
+  subgraph diagram ["[C2] Containers (slide view)"]
     style diagram fill:#ffffff,stroke:#ffffff
 
-    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    1["Guest<br/>[Person]<br/>Views room photos; books a<br/>room type or a specific room<br/>on web or mobile."]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system: non-pool<br/>reservations, prices, stay<br/>settlement and refunds at<br/>checkout, cancellations,<br/>manager reports. No API, only<br/>file exchange. Blocks a room<br/>pool that only we sell."]
+    15["Reservations System (legacy)<br/>[Software System]<br/>Prices, non-pool stays,<br/>settlement, refunds, reports.<br/>No API, files only; blocks a<br/>pool only we sell."]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["Smart Lock Platform<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone.<br/>A key stored in the phone<br/>opens the lock even while our<br/>system is down; key cards at<br/>reception are the fallback."]
+    16["Smart Lock Platform<br/>[Software System]<br/>Mobile keys via vendor API; a<br/>key in the phone works even<br/>while we are down."]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["Payment Operator<br/>[Software System]<br/>External payment operator:<br/>hosted payment page, card<br/>pre-authorisation at booking.<br/>We never see card data."]
+    17["Payment Operator<br/>[Software System]<br/>Hosted payment page; card<br/>pre-authorisation at booking.<br/>We never see card data."]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; keeps its own<br/>copy of today's arrivals and<br/>room status (events from<br/>Rezerwacje) and builds the<br/>reception emergency list from<br/>it every 15 min (file +<br/>e-mail); smart-lock adapter:<br/>lock-to-room mapping, issues<br/>and revokes mobile keys<br/>(guest: check-in to checkout;<br/>housekeeper: assigned room,<br/>for the task)."]
+      10["Stay Service<br/>[Container: TypeScript, NestJS]<br/>Board frames: Visit +<br/>Faraway. Check-in, checkout,<br/>emergency list; smart-lock<br/>adapter, mobile keys in MVP."]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja:<br/>the only place that swaps<br/>files with legacy, both ways<br/>every 15 min. In: room pool<br/>we may sell, prices, non-pool<br/>bookings, check-ins and<br/>check-outs. Out: our pool<br/>bookings with guest data,<br/>check-ins / outs, payment<br/>pre-authorisation number.<br/>Numbered files, idempotent<br/>import, alert on a missing<br/>file; nightly full comparison<br/>(pool: we win, non-pool:<br/>legacy wins)."]
+      11["Legacy Sync Service<br/>[Container: TypeScript, NestJS]<br/>Board frame: Synchronizacja.<br/>Only link to legacy: files<br/>both ways every 15 min,<br/>nightly comparison."]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      12["Oferta Service (Marketing)<br/>[Container: TypeScript, NestJS]<br/>Board frame Marketing: room<br/>standard, features, photos,<br/>descriptions; read-only for<br/>the rest of the system."]
+      12["Room Offer Service<br/>[Container: TypeScript, NestJS]<br/>Board frame: Marketing. Room<br/>photos, floor plans and<br/>features; read-only for the<br/>rest."]
       style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("Shared Database<br/>[Container: PostgreSQL (managed)]<br/>Managed PostgreSQL, one<br/>schema per service; each<br/>service has its own DB user<br/>with access to its own schema<br/>only; replica in a second<br/>zone with automatic failover<br/>in 1-2 min; nightly backup +<br/>continuous log (point-in-time<br/>restore, 7 days).")]
+      13[("Shared Database<br/>[Container: PostgreSQL (managed)]<br/>Managed PostgreSQL, one<br/>schema per service; replica<br/>in a second zone, failover in<br/>1-2 min.")]
       style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room;<br/>sends the guest to the<br/>payment operator's page."]
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and floor plans;<br/>books a room type or a<br/>specific room."]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests<br/>(phone: the guest gets a<br/>payment link), check-in /<br/>out, room board, cart queue<br/>panel."]
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings,<br/>check-in / out, room board,<br/>cart queue panel."]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Ordered room list with guest<br/>wishes and defects; works<br/>offline, sends updates when<br/>Wi-Fi is back."]
+      7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Offline cart app: ordered<br/>room list with guest wishes<br/>and defects; syncs when Wi-Fi<br/>returns."]
       style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); holds the room<br/>10 min while the guest<br/>pre-authorises the payment at<br/>the payment operator,<br/>confirmed by webhook; never<br/>waits for legacy; computes<br/>when every hotel room is<br/>needed next."]
+      8["Reservations Service<br/>[Container: TypeScript, NestJS]<br/>Board frame: Rezerwacja +<br/>room status. Source of truth<br/>for room-nights; 10-min hold<br/>until pre-auth."]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices. Keeps its own copy<br/>of room status and room<br/>needed-by (events from<br/>Rezerwacje), so it works on<br/>the last known state while<br/>Rezerwacje is down."]
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames: Housekeeping +<br/>Servis tech. One cleaning and<br/>repair queue, prioritised by<br/>room needed-by."]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
@@ -42,13 +42,13 @@ graph TB
     6-- "Books, reads room board<br/>[HTTPS]" -->8
     6-- "Checks in / out<br/>[HTTPS]" -->10
     7-- "Syncs task updates<br/>[HTTPS]" -->9
-    8-. "Room needed by (all rooms)<br/>[room-status-events]" .->9
+    11-- "Swaps files both ways<br/>[SFTP, every 15 min]" -->15
     10-. "Guest checked out<br/>[room-status-events]" .->9
+    8-. "Room needed by<br/>[room-status-events]" .->9
     10-. "Room occupied / vacated<br/>[room-status-events]" .->8
     9-. "Room ready / defect<br/>[room-status-events]" .->8
-    11-- "Imports pool, prices,<br/>non-pool stays; reads our<br/>bookings<br/>[HTTPS, every 15 min]" -->8
+    11-- "Pool, non-pool stays in; our<br/>bookings out<br/>[HTTPS, every 15 min]" -->8
     10-- "Issues / revokes mobile keys<br/>[Vendor API, HTTPS]" -->16
-    11-- "Swaps files both ways<br/>[SFTP, files every 15 min]" -->15
     8-- "Opens pre-auth; result by<br/>webhook<br/>[HTTPS, webhook]" -->17
 
   end

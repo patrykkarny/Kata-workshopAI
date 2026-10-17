@@ -7,37 +7,37 @@ graph LR
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      11["<div style='font-weight: bold'>Synchronizacja Service (legacy ACL)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Synchronizacja:<br />the only place that swaps<br />files with legacy, both ways<br />every 15 min. In: room pool<br />we may sell, prices, non-pool<br />bookings, check-ins and<br />check-outs. Out: our pool<br />bookings with guest data,<br />check-ins / outs, payment<br />pre-authorisation number.<br />Numbered files, idempotent<br />import, alert on a missing<br />file; nightly full comparison<br />(pool: we win, non-pool:<br />legacy wins).</div>"]
+      11["<div style='font-weight: bold'>Legacy Sync Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame: Synchronizacja.<br />Only link to legacy: files<br />both ways every 15 min,<br />nightly comparison.</div>"]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("<div style='font-weight: bold'>Shared Database</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL (managed)]</div><div style='font-size: 80%; margin-top:10px'>Managed PostgreSQL, one<br />schema per service; each<br />service has its own DB user<br />with access to its own schema<br />only; replica in a second<br />zone with automatic failover<br />in 1-2 min; nightly backup +<br />continuous log (point-in-time<br />restore, 7 days).</div>")]
+      13[("<div style='font-weight: bold'>Shared Database</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL (managed)]</div><div style='font-size: 80%; margin-top:10px'>Managed PostgreSQL, one<br />schema per service; replica<br />in a second zone, failover in<br />1-2 min.</div>")]
       style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["<div style='font-weight: bold'>Guest Web App</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React PWA]</div><div style='font-size: 80%; margin-top:10px'>Room photos and descriptions,<br />availability; books a room<br />type or a specific room;<br />sends the guest to the<br />payment operator's page.</div>"]
+      5["<div style='font-weight: bold'>Guest Web App</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React PWA]</div><div style='font-size: 80%; margin-top:10px'>Room photos and floor plans;<br />books a room type or a<br />specific room.</div>"]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      7["<div style='font-weight: bold'>Housekeeping Cart App</div><div style='font-size: 70%; margin-top: 0px'>[Container: Offline web app, IndexedDB]</div><div style='font-size: 80%; margin-top:10px'>Ordered room list with guest<br />wishes and defects; works<br />offline, sends updates when<br />Wi-Fi is back.</div>"]
+      7["<div style='font-weight: bold'>Housekeeping Cart App</div><div style='font-size: 70%; margin-top: 0px'>[Container: Offline web app, IndexedDB]</div><div style='font-size: 80%; margin-top:10px'>Offline cart app: ordered<br />room list with guest wishes<br />and defects; syncs when Wi-Fi<br />returns.</div>"]
       style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); holds the room<br />10 min while the guest<br />pre-authorises the payment at<br />the payment operator,<br />confirmed by webhook; never<br />waits for legacy; computes<br />when every hotel room is<br />needed next.</div>"]
+      8["<div style='font-weight: bold'>Reservations Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame: Rezerwacja +<br />room status. Source of truth<br />for room-nights; 10-min hold<br />until pre-auth.</div>"]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Housekeeping +<br />Servis tech: one queue for<br />cleaning and repairs,<br />priority from when the room<br />is needed next; API for cart<br />devices. Keeps its own copy<br />of room status and room<br />needed-by (events from<br />Rezerwacje), so it works on<br />the last known state while<br />Rezerwacje is down.</div>"]
+      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames: Housekeeping +<br />Servis tech. One cleaning and<br />repair queue, prioritised by<br />room needed-by.</div>"]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos and<br />descriptions; books a room<br />type or a specific room on<br />web or mobile.</div>"]
+    1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos; books a<br />room type or a specific room<br />on web or mobile.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Existing system: non-pool<br />reservations, prices, stay<br />settlement and refunds at<br />checkout, cancellations,<br />manager reports. No API, only<br />file exchange. Blocks a room<br />pool that only we sell.</div>"]
+    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Prices, non-pool stays,<br />settlement, refunds, reports.<br />No API, files only; blocks a<br />pool only we sell.</div>"]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>External payment operator:<br />hosted payment page, card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
+    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Hosted payment page; card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
-    1-- "<div>1. Picks a specific room from<br />photos</div><div style='font-size: 70%'>[HTTPS]</div>" -->5
+    1-- "<div>1. Picks a specific room</div><div style='font-size: 70%'>[HTTPS]</div>" -->5
     5-- "<div>2. POST /bookings (room,<br />nights)</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
-    8-- "<div>3. Insert hold per<br />room-night: unique (room,<br />night), 10-min TTL</div><div style='font-size: 70%'>[SQL, ACID]</div>" -->13
+    8-- "<div>3. 10-min hold, unique per<br />room-night</div><div style='font-size: 70%'>[SQL, ACID]</div>" -->13
     8-- "<div>4. Open pre-authorisation</div><div style='font-size: 70%'>[HTTPS, webhook]</div>" -->17
     5-- "<div>5. Redirect: guest enters<br />card on hosted page</div><div style='font-size: 70%'>[HTTPS redirect]</div>" -->17
     17-- "<div>6. Pre-authorisation OK<br />(webhook)</div><div style='font-size: 70%'>[HTTPS, webhook]</div>" -->8
-    8-- "<div>7. Hold to booking, room<br />assigned, needed-by date set</div><div style='font-size: 70%'>[SQL, ACID]</div>" -->13
+    8-- "<div>7. Hold to booking, needed-by<br />date set</div><div style='font-size: 70%'>[SQL, ACID]</div>" -->13
     8-. "<div>8. Room needed by (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
     9-. "<div>9. Push reprioritised task<br />list</div><div style='font-size: 70%'>[WebSocket]</div>" .->7
     11-- "<div>10. Next 15-min run: reads<br />new bookings</div><div style='font-size: 70%'>[HTTPS, every 15 min]</div>" -->8
-    11-- "<div>11. Booking + guest data +<br />pre-auth number in next file</div><div style='font-size: 70%'>[SFTP, files every 15 min]</div>" -->15
+    11-- "<div>11. Booking, guest data,<br />pre-auth number in next file</div><div style='font-size: 70%'>[SFTP, every 15 min]</div>" -->15
 
   end

@@ -7,37 +7,37 @@ graph LR
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; keeps its own<br/>copy of today's arrivals and<br/>room status (events from<br/>Rezerwacje) and builds the<br/>reception emergency list from<br/>it every 15 min (file +<br/>e-mail); smart-lock adapter:<br/>lock-to-room mapping, issues<br/>and revokes mobile keys<br/>(guest: check-in to checkout;<br/>housekeeper: assigned room,<br/>for the task)."]
+      10["Stay Service<br/>[Container: TypeScript, NestJS]<br/>Board frames: Visit +<br/>Faraway. Check-in, checkout,<br/>emergency list; smart-lock<br/>adapter, mobile keys in MVP."]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja:<br/>the only place that swaps<br/>files with legacy, both ways<br/>every 15 min. In: room pool<br/>we may sell, prices, non-pool<br/>bookings, check-ins and<br/>check-outs. Out: our pool<br/>bookings with guest data,<br/>check-ins / outs, payment<br/>pre-authorisation number.<br/>Numbered files, idempotent<br/>import, alert on a missing<br/>file; nightly full comparison<br/>(pool: we win, non-pool:<br/>legacy wins)."]
+      11["Legacy Sync Service<br/>[Container: TypeScript, NestJS]<br/>Board frame: Synchronizacja.<br/>Only link to legacy: files<br/>both ways every 15 min,<br/>nightly comparison."]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room;<br/>sends the guest to the<br/>payment operator's page."]
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and floor plans;<br/>books a room type or a<br/>specific room."]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests<br/>(phone: the guest gets a<br/>payment link), check-in /<br/>out, room board, cart queue<br/>panel."]
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings,<br/>check-in / out, room board,<br/>cart queue panel."]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); holds the room<br/>10 min while the guest<br/>pre-authorises the payment at<br/>the payment operator,<br/>confirmed by webhook; never<br/>waits for legacy; computes<br/>when every hotel room is<br/>needed next."]
+      8["Reservations Service<br/>[Container: TypeScript, NestJS]<br/>Board frame: Rezerwacja +<br/>room status. Source of truth<br/>for room-nights; 10-min hold<br/>until pre-auth."]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices. Keeps its own copy<br/>of room status and room<br/>needed-by (events from<br/>Rezerwacje), so it works on<br/>the last known state while<br/>Rezerwacje is down."]
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames: Housekeeping +<br/>Servis tech. One cleaning and<br/>repair queue, prioritised by<br/>room needed-by."]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
+    1["Guest<br/>[Person]<br/>Views room photos; books a<br/>room type or a specific room<br/>on web or mobile."]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings with a payment link,<br/>check-in / out), hotel<br/>manager (replacement rooms),<br/>housekeeping supervisor (cart<br/>queues)."]
+    2["Hotel Staff<br/>[Person]<br/>Front desk (bookings,<br/>check-in / out), hotel<br/>manager, housekeeping<br/>supervisor (cart queues)."]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
-    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system: non-pool<br/>reservations, prices, stay<br/>settlement and refunds at<br/>checkout, cancellations,<br/>manager reports. No API, only<br/>file exchange. Blocks a room<br/>pool that only we sell."]
+    15["Reservations System (legacy)<br/>[Software System]<br/>Prices, non-pool stays,<br/>settlement, refunds, reports.<br/>No API, files only; blocks a<br/>pool only we sell."]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["Payment Operator<br/>[Software System]<br/>External payment operator:<br/>hosted payment page, card<br/>pre-authorisation at booking.<br/>We never see card data."]
+    17["Payment Operator<br/>[Software System]<br/>Hosted payment page; card<br/>pre-authorisation at booking.<br/>We never see card data."]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
-    11-- "1. No file from legacy:<br/>alert, nothing else waits<br/>[SFTP, files every 15 min]" -->15
+    11-- "1. No file from legacy:<br/>alert, nothing else waits<br/>[SFTP, every 15 min]" -->15
     1-- "2. Books a specific room<br/>[HTTPS]" -->5
     5-- "3. POST /bookings: hold<br/>room-nights<br/>[HTTPS]" -->8
-    8-- "4. Pre-authorisation as<br/>usual, no legacy<br/>[HTTPS, webhook]" -->17
-    2-- "5. Checks guests out;<br/>non-pool checkouts entered by<br/>hand<br/>[HTTPS]" -->6
+    8-- "4. Pre-authorisation as usual<br/>[HTTPS, webhook]" -->17
+    2-- "5. Checks guests out;<br/>non-pool checkouts by hand<br/>[HTTPS]" -->6
     6-- "6. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
-    10-. "7. Guest checked out:<br/>cleaning starts as usual<br/>[room-status-events]" .->9
-    11-- "8. Legacy back: next numbered<br/>file catches up<br/>[SFTP, files every 15 min]" -->15
-    11-- "9. Idempotent import: same<br/>file twice changes nothing<br/>[HTTPS, every 15 min]" -->8
+    10-. "7. Guest checked out:<br/>cleaning as usual<br/>[room-status-events]" .->9
+    11-- "8. Legacy back: next numbered<br/>file catches up<br/>[SFTP, every 15 min]" -->15
+    11-- "9. Idempotent import: same<br/>file twice is harmless<br/>[HTTPS, every 15 min]" -->8
 
   end
