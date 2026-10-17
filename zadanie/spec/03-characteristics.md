@@ -16,10 +16,10 @@ Authors: Zespół White (Marek, Patryk, Mariusz, Kamil)
 
 | ID | Module | Characteristic | Why | Evidence | How we measure | Source |
 |---|---|---|---|---|---|---|
-| AC-01 | M-04 Synchronizacja | Integracje (Interoperability) | zmiana API legacy ma ruszać tylko Synchronizację, nie resztę systemu | C-02 | _Brak w notatkach._ | notatki |
+| AC-01 | M-04 Synchronizacja | Integracje (Interoperability) | zmiana API legacy ma ruszać tylko Synchronizację, nie resztę systemu | C-02 | zmiana API legacy zmienia kod tylko w Synchronizacji; testy kontraktowe z API legacy przy każdym buildzie | notatki |
 | AC-02 | M-04 Synchronizacja | Odporność na awarie (Robustness) | jak legacy nie odpowiada, płatności czekają w kolejce | FR-06 | legacy nie odpowiada przez pół godziny | notatki |
-| AC-03 | M-03 Pobyt | Odporność na awarie (Robustness) | jak legacy nie odpowiada, check-in i checkout działają dalej | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny | notatki |
-| AC-04 | M-02 Housekeeping | Odporność na awarie (Robustness) | jak legacy nie odpowiada, sprzątanie działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny | notatki |
+| AC-03 | M-03 Pobyt | Odporność na awarie (Robustness) | jak legacy nie odpowiada, check-in i checkout działają dalej | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny; test, w którym wyłączamy serwis Rezerwacje na 30 minut, a check-in i checkout działają | notatki |
+| AC-04 | M-02 Housekeeping | Odporność na awarie (Robustness) | jak legacy nie odpowiada, sprzątanie działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa, a zdarzenia „pokój gotowy” i „usterka” czekają w kolejce | _Brak w notatkach._ | legacy nie odpowiada przez pół godziny; test, w którym wyłączamy serwis Rezerwacje na 30 minut, a sprzątanie działa | notatki, grill-me Q62 |
 
 ## Considered, Not Driving
 
@@ -33,7 +33,10 @@ Authors: Zespół White (Marek, Patryk, Mariusz, Kamil)
 
 ## Trade-offs
 
-_Brak w notatkach._
+- Prostota (simplicity) vs odporność na awarie (fault tolerance): oddajemy część prostoty (pięć serwisów zamiast jednej aplikacji), żeby awaria jednego obszaru nie zatrzymała hotelu. (notatki)
+- Prostota (simplicity) vs spójność (Data consistency): zostajemy przy jednej bazie zamiast bazy na serwis, bo to prostsze i blokada pokoju to jedna transakcja; płacimy tym, że baza jest wspólnym punktem awarii, więc replika. (notatki)
+- Integracje (Interoperability) vs termin (Time to market): nie czekamy na idealne API legacy, mamy plan B z plikami, za cenę opóźnienia do 15 minut w trybie awaryjnym. (notatki)
+- Bezpieczeństwo (Security) vs termin (Time to market): smart locki przesuwamy do etapu 2, na start karty jak dziś. (notatki)
 
 ## Open Questions
 

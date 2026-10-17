@@ -9,13 +9,13 @@ Miro: brak linku; zrzut tablicy: `event-storming/kata-white.png`
 
 ### BC-01 Rezerwacja (core)
 
-- Responsibility: zapytanie o dostępność, wymagania i życzenia gościa, rezerwacja typu albo konkretnego pokoju, zdjęcie dostępności; wszystkie kanały (web, mobile, telefon, walk-in) przez jedno API (FR-03); jedyne miejsce, które wie, czy pokój jest wolny danej nocy, w jakim jest stanie i kiedy będzie potrzebny (FR-05); jedyne miejsce, które może zająć pokój na noc.
+- Responsibility: zapytanie o dostępność, wymagania i życzenia gościa, rezerwacja typu albo konkretnego pokoju, zdjęcie dostępności; wszystkie kanały (web, mobile, telefon, walk-in) przez jedno API (FR-03); jedyne miejsce, które wie, czy pokój jest wolny danej nocy, w jakim jest stanie i kiedy będzie potrzebny (FR-05); jedyne miejsce, które może zająć pokój na noc; liczy „pokój potrzebny o” dla wszystkich pokoi (także spoza puli) i wysyła to do Housekeepingu.
 - Key events: Zapytano o dostępność, Zebrano wymagania, Zamówione ekstra elementy do pokoju na pobyt, Sprawdzono dostępność pokoi zgodnie z wymaganiami, Zarezerwowano pokój, Dostarczenie listy życzeń do pokoju, Dostosowano pokój do ekstra wymagań, Zdjęta dostępność pokoju.
 - Commands & policies: FR-02, FR-06, FR-09, FR-16; aktorzy na ramce: Sales, Guest, Recepcja.
 - Language: „dostępny”: wolny do sprzedaży (inny stan niż „gotowy”); „pokój”: noce i status; „życzenie”: także obietnica handlowca zapisana w rezerwacji.
 - Owns data: dostępność pokoju na noc, status pokoju, kiedy pokój będzie potrzebny.
-- Hotspots: _Brak w notatkach._
-- Source: Miro: Rezerwacja, notatki, grill-me Q1, Q15, Q18, Q34, Q36
+- Hotspots: dwa kanały mogą chcieć ten sam pokój na tę samą noc, dlatego blokada pokoju na noc jest w jednym miejscu; handlowcy obiecują gościom rzeczy, których nie ma w systemie, dlatego obietnice zapisujemy jako życzenia ze sprawdzeniem (FR-09).
+- Source: Miro: Rezerwacja, notatki, grill-me Q1, Q15, Q18, Q34, Q36, Q63
 
 ### BC-02 Housekeeping (core)
 
@@ -24,7 +24,7 @@ Miro: brak linku; zrzut tablicy: `event-storming/kata-white.png`
 - Commands & policies: FR-12, FR-14; aktor na ramce: Housekeeper.
 - Language: „gotowy”: posprzątany (inny stan niż „dostępny”); „pokój”: zadania.
 - Owns data: zadania (zlecenia sprzątania).
-- Hotspots: _Brak w notatkach._
+- Hotspots: Wi-Fi w hotelu się rwie, dlatego aplikacja na wózki działa offline.
 - Source: Miro: Housekeeping, notatki, grill-me Q18, Q34
 
 ### BC-03 Servis tech (core)
@@ -69,13 +69,13 @@ Miro: brak linku; zrzut tablicy: `event-storming/kata-white.png`
 
 ### BC-07 Synchronizacja (supporting)
 
-- Responsibility: jedyne miejsce, które rozmawia z legacy: pre-rezerwacje i pula, rezerwacje, płatności, ceny, raporty check-in i checkout, porównanie danych; legacy schowane za Synchronizacją, żeby jego model nie wyciekał do reszty systemu.
+- Responsibility: jedyne miejsce, które rozmawia z legacy: pre-rezerwacje i pula, rezerwacje, płatności, ceny, raporty check-in i checkout, porównanie danych; legacy schowane za Synchronizacją, żeby jego model nie wyciekał do reszty systemu; przekazuje do Rezerwacji rezerwacje z legacy dla pokoi spoza puli.
 - Key events: Wystawiono Raport check in / check out, Zaczytano Raport check in / check out legacy, System legacy zsynchronizowany, System modern zsynchronizowany.
 - Commands & policies: komenda: Nadpisz pre-rezerwacje; FR-07, FR-08, FR-17, FR-19; aktor na ramce: System.
 - Language: „pre-rezerwacja”: blokada pokoju w legacy dla naszej puli.
 - Owns data: _Brak w notatkach._
-- Hotspots: _Brak w notatkach._
-- Source: Miro: Synchronizacja, notatki, grill-me Q3
+- Hotspots: API legacy jest jeszcze w toku (C-02), dlatego mamy plan B z plikami co 15 minut.
+- Source: Miro: Synchronizacja, notatki, grill-me Q3, Q63
 
 ### BC-08 Payments (generic)
 
@@ -94,9 +94,10 @@ Miro: brak linku; zrzut tablicy: `event-storming/kata-white.png`
 | BC-01 Rezerwacja | BC-04 Visit | Rezerwacja jako jedyna zajmuje pokój na noc; Visit prosi ją o zmianę | zmiana stanu pokoju | notatki |
 | BC-01 Rezerwacja | BC-05 Faraway | Rezerwacja jako jedyna zajmuje pokój na noc; Faraway prosi ją o zmianę | zmiana stanu pokoju | notatki |
 | BC-05 Faraway | BC-02 Housekeeping | po checkoucie Faraway wysyła zlecenie | zlecenie sprzątania | notatki |
-| BC-01 Rezerwacja | BC-02 Housekeeping | Rezerwacja mówi, na kiedy pokój ma być gotowy; z tego liczymy priorytet | termin gotowości pokoju | notatki |
-| BC-02 Housekeeping | BC-01 Rezerwacja | Housekeeping mówi, że pokój jest gotowy | pokój gotowy | notatki |
-| BC-03 Servis tech | BC-01 Rezerwacja | Servis tech mówi, że pokój jest gotowy albo ma usterkę | pokój gotowy, usterka | notatki |
+| BC-01 Rezerwacja | BC-02 Housekeeping | Rezerwacja mówi, na kiedy pokój ma być gotowy, dla wszystkich pokoi (także spoza puli); z tego liczymy priorytet | termin gotowości pokoju („pokój potrzebny o”) | notatki, grill-me Q63 |
+| BC-02 Housekeeping | BC-01 Rezerwacja | Housekeeping mówi, że pokój jest gotowy; przez kolejkę zdarzeń, a nie przez HTTPS: jak Rezerwacje leżą, zdarzenia czekają w kolejce, a status na recepcji uzupełnia się po powrocie | pokój gotowy | notatki, grill-me Q62 |
+| BC-03 Servis tech | BC-01 Rezerwacja | Servis tech mówi, że pokój jest gotowy albo ma usterkę; przez kolejkę zdarzeń, a nie przez HTTPS: jak Rezerwacje leżą, zdarzenia czekają w kolejce, a status na recepcji uzupełnia się po powrocie | pokój gotowy, usterka | notatki, grill-me Q62 |
+| BC-07 Synchronizacja | BC-01 Rezerwacja | Synchronizacja przekazuje rezerwacje z legacy, żeby Rezerwacja liczyła „pokój potrzebny o” także dla pokoi spoza puli | rezerwacje z legacy dla pokoi spoza puli | grill-me Q63 |
 | Legacy (system zewnętrzny) | BC-07 Synchronizacja | legacy schowane za Synchronizacją, żeby jego model nie wyciekał | pre-rezerwacje i pula, rezerwacje, płatności, ceny, raporty check-in i checkout, porównanie danych | notatki |
 | BC-08 Payments | BC-07 Synchronizacja | Synchronizacja wysyła żądania do Payments (legacy) | żądanie płatności, zwrotu | notatki |
 | BC-06 Marketing | reszta systemu | tylko do odczytu dla reszty | oferta (zdjęcia, opisy, cechy) | notatki |
@@ -105,11 +106,11 @@ Miro: brak linku; zrzut tablicy: `event-storming/kata-white.png`
 
 | ID | Module | BC | Responsibility | FRs | Source |
 |---|---|---|---|---|---|
-| M-01 | Rezerwacje | BC-01 | ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją | _Brak w notatkach._ | notatki |
-| M-02 | Housekeeping | BC-02, BC-03 | ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; API dla urządzeń przy wózkach | _Brak w notatkach._ | notatki |
-| M-03 | Pobyt | BC-04, BC-05 | ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; w etapie 2 klucze mobilne | _Brak w notatkach._ | notatki |
-| M-04 | Synchronizacja | BC-07, BC-08 | ramka Synchronizacja i wywołania do Payments, z kolejką na czas awarii legacy | _Brak w notatkach._ | notatki |
-| M-05 | Oferta | BC-06 | ramka Marketing, tylko do odczytu dla reszty | _Brak w notatkach._ | notatki |
+| M-01 | Rezerwacje | BC-01 | ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją; zadanie przydziału pokoju dzień przed przyjazdem | FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-09, FR-15, FR-16 | notatki, grill-me Q67, Q68 |
+| M-02 | Housekeeping | BC-02, BC-03 | ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; API dla urządzeń przy wózkach | FR-11, FR-12, FR-13, FR-14, FR-17 | notatki |
+| M-03 | Pobyt | BC-04, BC-05 | ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; generuje co 15 minut listę awaryjną dla recepcji; w etapie 2 klucze mobilne | FR-10, FR-18 | notatki, grill-me Q66, Q68 |
+| M-04 | Synchronizacja | BC-07, BC-08 | ramka Synchronizacja i wywołania do Payments, z kolejką na czas awarii legacy | FR-07, FR-08, FR-19 | notatki |
+| M-05 | Oferta | BC-06 | ramka Marketing, tylko do odczytu dla reszty; pokazywanie zdjęć, planów pięter i cech pokoi do wyboru | _Brak w notatkach._ | notatki |
 
 ## Open Questions
 
