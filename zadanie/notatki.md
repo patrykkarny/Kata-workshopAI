@@ -176,6 +176,61 @@ Jak mierzymy:
 - Jedna platforma dla wszystkich hoteli w regionie USA, a nie instancja na hotel, bo 107 wdrożeń to za dużo; ten sam zestaw serwisów można postawić w drugim regionie
 - Nie optymalizujemy pod skalowanie, bo ruch jest mały; wracamy do tematu, jak przekroczymy ok. 100 rezerwacji na minutę
 
+Doprecyzowania po ADR-ach:
+
+Pokój i status, gdy coś leży
+- zmiana: check-in i checkout z Pobytu też idą do Rezerwacji jako zdarzenia przez kolejkę, a nie przez HTTPS, bo inaczej check-in nie zadziała, jak Rezerwacje leżą (AC-03)
+- Pobyt i Housekeeping trzymają u siebie kopię tego, czego potrzebują z Rezerwacji (przyjazdy na dziś, status pokoju, „pokój potrzebny o”), aktualizowaną zdarzeniami; jak Rezerwacje leżą, pracują na ostatnim znanym stanie
+- z tej kopii Pobyt robi też listę awaryjną dla recepcji, więc nie czyta cudzego schematu
+- usterka blokująca czeka w kolejce tylko wtedy, gdy Rezerwacje leżą, a wtedy i tak nikt nie sprzedaje pokoi; normalnie zdarzenie dochodzi w kilka sekund
+- w czasie przełączania bazy (1-2 minuty) web, mobile i telefon dostają „spróbuj za chwilę”, zdjęcia pokoi dalej działają z CDN, a wózki zapisują offline
+
+Kolejka
+- każdy serwis zapisuje zdarzenie w swoim schemacie razem z danymi (outbox), a dalej idzie przez zarządzaną kolejkę w chmurze, która nie zależy od naszej bazy
+- zdarzenie może przyjść dwa razy, więc każdy odbiorca sprawdza jego identyfikator i drugi raz go ignoruje
+- kolejka służy tylko do czterech zmian statusu pokoju; to nie jest event-driven dla całego systemu, więc nie przeczy odrzuceniu event-driven w stylu
+
+Legacy
+- zapytanie do legacy czeka maksymalnie 5 sekund, potem trafia do kolejki
+- blokada pokoju czekającego na legacy trzyma maksymalnie 2 godziny, potem się zwalnia i gość dostaje maila jak w Q65
+- w planie B (pliki co 15 minut) płatność potwierdza się z opóźnieniem, a blokada trzyma do potwierdzenia, tak jak przy awarii
+- o planie B decydujemy w połowie maja, jak API legacy nie będzie gotowe; decyduje tech lead razem z biznesem
+- jak codzienne porównanie znajdzie różnicę: dla pokoi z puli wygrywa nasz system, dla pokoi spoza puli wygrywa legacy; listę różnic dostaje rano manager hotelu
+- jak legacy nie umie blokować pokoi (A-01), pulę blokujemy w legacy jedną długą techniczną rezerwacją na każdy pokój z puli
+- synchronizacja raz dziennie odpadła z dwóch powodów: nie potwierdza płatności i przez cały dzień legacy i my widzimy coś innego, czyli przeczy odporności na awarie
+- płatności w legacy opisujemy w tym samym ADR co integrację, bo to jedna rozmowa z legacy
+
+Baza
+- wspólna baza daje to, że utrzymujemy jedną bazę z jedną repliką i jednym backupem zamiast pięciu, czyli prościej i taniej
+- każdy serwis ma własnego użytkownika bazy z dostępem tylko do swojego schematu, więc nie może czytać cudzych danych
+- backup co noc plus ciągły zapis zmian, odtworzenie do dowolnej chwili z ostatnich 7 dni, odtworzenie trwa poniżej godziny
+- przełączenie na replikę ćwiczymy raz przed sezonem i potem raz na kwartał
+
+Wózki
+- urządzenia to tablety firmy z przeglądarką, nie wiemy, czy da się na nich instalować aplikacje, dlatego aplikacja webowa
+- cena offline: trzeba napisać i przetestować synchronizację zmian i rozwiązywanie konfliktów
+- offline działa lista zadań, zmiana statusu pokoju i zgłoszenie usterki; zmiany wysyłają się same po powrocie sieci
+- jak kierowniczka zmieni kolejność, a wózek jest offline, housekeeper zobaczy nową kolejność po powrocie sieci; bieżący pokój kończy
+- przy konflikcie o kolejność wygrywa kierowniczka, o stan pokoju wygrywa housekeeper, który w nim był
+- 15 minut liczymy z czasu zapisanego na urządzeniu, a nie z czasu dotarcia zmiany na serwer
+- każde zadanie ma przypisaną jedną osobę, więc dwa wózki nie robią tego samego pokoju
+
+Smart locki
+- klucz dla housekeepera wydaje Pobyt na prośbę Housekeepingu przy przydziale zadania i unieważnia po zakończeniu zadania
+- powiązanie zamka z pokojem ustawia hotel w konfiguracji Pobytu, a nie Marketing, bo to dane techniczne
+- adapter zamków jest w Pobycie, a nie w Synchronizacji, bo Synchronizacja jest tylko od legacy, a klucze żyją razem z check-in i checkout
+- etap 2 zaczyna się po sezonie, we wrześniu; bezpieczeństwo jest „dopięte”, jak przejdzie test penetracyjny i test unieważniania kluczy
+- jak telefon gościa jest rozładowany albo zamek nie odpowiada, recepcja daje kartę, karty zostają jako zapas
+- zakładamy, że biznes akceptuje karty w pierwszym sezonie, bo najważniejszy jest housekeeping; do potwierdzenia
+
+Skalowanie
+- próg 100 rezerwacji na minutę liczymy dla całej platformy w regionie, jako średnią z 15 minut; pilnuje tego dashboard i alert, a odpowiada tech lead
+- najgorsza godzina: jak 20% dziennych rezerwacji przyjdzie w jednej godzinie, to ok. 1300 na godzinę, czyli ok. 21 na minutę, dużo poniżej progu
+- zysk: prostsza i tańsza infrastruktura i zespół skupiony na terminie
+- jak przekroczymy próg, najpierw dokładamy instancje tylko temu serwisowi, który się dławi, co service-based umożliwia, a w tym czasie planujemy dalsze zmiany
+- poza sezonem nie skalujemy w dół, bo przy tym ruchu oszczędność jest mała
+- drugi region ma swój próg
+
 ## Nadal otwarte
 
 <!-- Czego wciąż nie wiecie. -->
