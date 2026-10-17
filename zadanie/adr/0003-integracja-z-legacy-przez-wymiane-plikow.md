@@ -13,7 +13,7 @@ Nasz system musi współpracować z istniejącym systemem rezerwacji (legacy). T
 - Nie wiemy jeszcze, jak często legacy może wysyłać i przyjmować pliki i w jakim formacie.
 - Sezon startuje na początku czerwca, obłożenie dochodzi do ok. 90% (C-01). W maju pilot w 2-3 hotelach (Q64).
 - Housekeeping obejmuje wszystkie pokoje hotelu, także spoza puli (FR-17), więc potrzebuje świeżych wymeldowań z pokoi spoza puli.
-- W top 3 charakterystyk są integracje i odporność na awarie. Zmiana formatu plików legacy ma ruszać tylko Synchronizację, nie resztę systemu (AC-01). Nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie może czekać na legacy na żywo.
+- W top 3 charakterystyk jest odporność na awarie: nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie może czekać na legacy na żywo. Integracje są ważne, ale poza top 3: każdą integrację trzymamy w jednym miejscu, legacy w Synchronizacji. Zmiana formatu plików legacy ma ruszać tylko Synchronizację, nie resztę systemu (AC-01).
 - Synchronizacja to jedyne miejsce, które wymienia pliki z legacy (BC-07, M-04). Legacy jest schowane za Synchronizacją, żeby jego model nie wyciekał do reszty systemu.
 
 ## Decision
@@ -43,6 +43,7 @@ W praktyce:
 Płatność:
 
 - Przy rezerwacji gość płaci na stronie zewnętrznego operatora płatności (preautoryzacja). Danych kart nie widzimy, przyjmuje je operator.
+- Gość w web i mobile przechodzi z naszej aplikacji na stronę operatora płatności i wraca z potwierdzeniem. Przy rezerwacji telefonicznej recepcja wysyła gościowi link do płatności SMS-em albo mailem.
 - W web i mobile gość przechodzi z naszej aplikacji na stronę operatora i wraca z potwierdzeniem; przy rezerwacji telefonicznej recepcja wysyła gościowi link do płatności SMS-em albo mailem.
 - Pobyt rozlicza legacy przy wymeldowaniu, jak dziś; zwroty też robi legacy (C-06). Numer preautoryzacji legacy dostaje w pliku.
 - Gość ma 10 minut na zapłatę u operatora (A-03, ADR-002). Jak operator odrzuci kartę, gość od razu to widzi i może podać inną. Jak nie zapłaci w 10 minut, blokada się zwalnia, a przy gościach VIP dzwoni recepcja (Q65).
@@ -74,7 +75,7 @@ Płatność:
 
 ## Notes
 
-- Spec: `zadanie/spec/01-prd.md` (FR-08, FR-17, FR-19, C-01, C-06, A-03), `zadanie/spec/02-domain.md` (BC-07, BC-08, M-04, context map), `zadanie/spec/03-characteristics.md` (top 3: integracje i odporność na awarie, AC-01). Spec jeszcze opisuje API legacy i płatności przez legacy (C-02, C-05, FR-06, FR-07, FR-21, AC-02, Q-01); do aktualizacji po tej zmianie.
+- Spec: `zadanie/spec/01-prd.md` (FR-08, FR-17, FR-19, C-01, C-06, A-03), `zadanie/spec/02-domain.md` (BC-07, BC-08, M-04, context map), `zadanie/spec/03-characteristics.md` (top 3: odporność na awarie; integracje poza top 3, AC-01). Spec jeszcze opisuje API legacy i płatności przez legacy (C-02, C-05, FR-06, FR-07, FR-21, AC-02, Q-01); do aktualizacji po tej zmianie.
 - Zadanie: `zadanie/zadanie.md`, wymaganie 05.
 - Odpowiedzi na grill-me: Q7, Q28, Q29, Q55, Q63, Q64, Q65 w `zadanie/notatki.md`; sekcje Decyzje, Trade-offy i „Doprecyzowania po ADR-ach” (Legacy (pliki)).
 - Jak mierzymy: zmiana formatu pliku legacy zmienia kod tylko w Synchronizacji; testy na przykładowych plikach z legacy przy każdym buildzie.

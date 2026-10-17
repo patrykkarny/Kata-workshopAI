@@ -22,7 +22,7 @@ Ograniczenia:
 - Wi-Fi w hotelu się rwie (hotspot w BC-02).
 - Przy awarii bazy przełączenie na replikę trwa 1-2 minuty; w tym czasie wózki zapisują offline (Q60, ADR-001, ADR-004).
 - Chcemy jeden stack: TypeScript, NestJS na backendzie, React na frontendzie, bo zespół ma znać jedną technologię.
-- Prostota jest w top 3: bez egzotycznej technologii. Integracje są w top 3, a urządzenia przy wózkach to jeden z cudzych systemów.
+- Prostota jest w top 3: bez egzotycznej technologii. Integracje są ważne, ale poza top 3, a urządzenia przy wózkach to jeden z cudzych systemów.
 
 ## Decision
 
@@ -61,7 +61,7 @@ W praktyce:
 ## Notes
 
 - Zadanie: `zadanie/zadanie.md` (wymagania 04 i 06).
-- Spec: `zadanie/spec/01-prd.md` (FR-13, FR-14, A-04), `zadanie/spec/02-domain.md` (BC-02, M-02), `zadanie/spec/03-characteristics.md` (top 3: prostota, integracje).
+- Spec: `zadanie/spec/01-prd.md` (FR-13, FR-14, A-04), `zadanie/spec/02-domain.md` (BC-02, M-02), `zadanie/spec/03-characteristics.md` (top 3: prostota; integracje poza top 3).
 - Odpowiedzi na grill-me: Q11, Q38, Q60, Q69 w `zadanie/notatki.md`; sekcje Decyzje, hot spoty i Jak mierzymy; sekcja „Doprecyzowania po ADR-ach” (Wózki).
 - Diagram C4: `zadanie/c4/workspace.dsl` (kontener `Housekeeping Cart App`).
 - Event Storming: `zadanie/event-storming/kata-white.png`; Miro: brak linku.
