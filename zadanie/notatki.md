@@ -105,19 +105,20 @@ Jak się łączą:
 - Housekeeping i Servis tech mówią Rezerwacji, że pokój jest gotowy albo ma usterkę
 - legacy schowane za Synchronizacją, żeby jego model nie wyciekał do reszty systemu
 
-Jak ramki mapują się na serwisy:
-- serwis Rezerwacje: ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją
-- serwis Housekeeping: ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
-- serwis Pobyt: ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; tu jest też adapter smart locków, który wydaje i unieważnia klucze mobilne
-- serwis Synchronizacja: ramka Synchronizacja, czyli import i eksport plików z legacy
-- serwis Oferta: ramka Marketing, tylko do odczytu dla reszty
+Jak ramki mapują się na serwisy (serwisy nazywamy po angielsku, ramki zostają jak na tablicy):
+- Reservations Service: ramka Rezerwacja razem z dostępnością i statusem pokoju, bo zablokowanie pokoju na noc musi być jedną transakcją
+- Housekeeping Service: ramki Housekeeping i Servis tech razem, bo to ci sami ludzie, jedna kolejka i ten sam priorytet; do tego API dla urządzeń przy wózkach
+- Stay Service: ramki Visit i Faraway razem, bo to początek i koniec tego samego pobytu; tu jest też adapter smart locków, który wydaje i unieważnia klucze mobilne
+- Legacy Sync Service: ramka Synchronizacja, czyli import i eksport plików z legacy
+- Room Offer Service: ramka Marketing, tylko do odczytu dla reszty
 
 Które wymagania robi który serwis:
-- Rezerwacje: FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-09, FR-15, FR-16
-- Housekeeping: FR-11, FR-12, FR-13, FR-14, FR-17
-- Pobyt: FR-10, FR-18
-- Synchronizacja: FR-07, FR-08, FR-19
-- Oferta: pokazywanie zdjęć, planów pięter i cech pokoi do wyboru
+- Reservations Service: FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-09, FR-15, FR-16, FR-21, FR-22
+- Housekeeping Service: FR-11, FR-12, FR-13, FR-14, FR-17, FR-23, FR-24, FR-25
+- Stay Service: FR-10, FR-18, FR-26, FR-27, FR-28
+- Legacy Sync Service: FR-07, FR-08, FR-19
+- Room Offer Service: FR-20 (zdjęcia, plany pięter i cechy pokoi do wyboru)
+- FR-29 (zachowanie przy przełączaniu bazy) dotyczy wszystkich serwisów
 
 Hot spoty z tablicy i rozmów:
 - Rezerwacja: dwa kanały mogą chcieć ten sam pokój na tę samą noc, dlatego blokada pokoju na noc jest w jednym miejscu
@@ -131,7 +132,7 @@ Hot spoty z tablicy i rozmów:
 
 Top 3:
 1. Prostota (simplicity): chodzi o prostą architekturę, nie o łatwość obsługi; system ma działać w czerwcu albo czekamy rok i robi go normalny zespół, więc mało serwisów, jedna baza, bez egzotycznej technologii; mierzymy tym, że MVP chodzi w hotelach pilotażowych przed sezonem
-2. Skalowalność (scalability): chodzi o wzrost, a nie o nagłe skoki; platforma od pierwszego dnia obsługuje 107 hoteli i ok. 21 tys. pokoi, firma ma dokładać kolejne hotele, a check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach; nowy hotel to konfiguracja, a nie zmiana kodu, a serwis, który się dławi, dostaje więcej instancji bez ruszania reszty
+2. Skalowalność (scalability): chodzi o wzrost, a nie o nagłe skoki; dowód: 107 hoteli i ok. 2500 rezerwacji dziennie na 42 hotele od biznesu, obłożenie do 90% w sezonie; platforma od pierwszego dnia obsługuje 107 hoteli i ok. 21 tys. pokoi, firma ma dokładać kolejne hotele, a check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach; nowy hotel to konfiguracja, a nie zmiana kodu, a serwis, który się dławi, dostaje więcej instancji bez ruszania reszty
 3. Odporność na awarie (fault tolerance): w sezonie przy 90% obłożenia hotel nie może stanąć; nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie czeka na legacy na żywo, więc jak legacy leży albo plik nie przyjdzie, hotel działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa
 
 Ważne, ale poza top 3:
@@ -164,7 +165,7 @@ Jak mierzymy:
 
 <!-- "Wybraliśmy X zamiast Y, bo ...". Każdą decyzję zapiszecie potem przez adr-builder. -->
 
-- Styl: service-based, czyli kilka dużych serwisów domenowych (Rezerwacje, Housekeeping, Pobyt, Synchronizacja, Oferta) ze wspólną bazą, bo awaria jednego obszaru nie może zatrzymać hotelu, a to wciąż na tyle proste, że zdążymy na czerwiec
+- Styl: service-based, czyli kilka dużych serwisów domenowych (Reservations, Housekeeping, Stay, Legacy Sync, Room Offer) ze wspólną bazą, bo awaria jednego obszaru nie może zatrzymać hotelu, a to wciąż na tyle proste, że zdążymy na czerwiec
 - Odrzuciliśmy modularny monolit i microkernel, bo są tańsze i prostsze, ale jak padnie aplikacja, pada wszystko, a odporność na awarie mamy w top 3
 - Odrzuciliśmy mikroserwisy i event-driven, bo to za dużo ruchomych części jak na nasz termin, a event-driven dodatkowo daje spójność ostateczną tam, gdzie blokada pokoju potrzebuje transakcji
 - Cena service-based: pięć rzeczy do wdrożenia zamiast jednej i wywołania po sieci między serwisami
@@ -178,7 +179,7 @@ Jak mierzymy:
 - Jedna baza PostgreSQL z osobnym schematem na serwis, a nie baza na serwis, bo to prostsze i blokadę pokoju na noc załatwia jedna transakcja w serwisie Rezerwacje; serwisy nie czytają cudzych schematów; cena: baza to wspólny punkt awarii, więc replika i backupy
 - Housekeeping wchodzi na pierwszy dzień dla wszystkich pokoi hotelu, a nie później, bo biznes mówi, że to najważniejsze
 - Aplikacja na wózki jako aplikacja webowa działająca offline, a nie natywna, bo urządzenia daje firma, chcemy jeden stack, a Wi-Fi w hotelu się rwie
-- Smart locki w MVP jako adapter w serwisie Pobyt, a nie później, bo firma mocno inwestuje w zamki otwierane telefonem, a dostawca ma gotowe API; cena: więcej pracy przed czerwcem i obowiązkowe testy bezpieczeństwa w maju
+- Smart locki w MVP jako adapter w Stay Service, a nie później, bo firma mocno inwestuje w zamki otwierane telefonem, a dostawca ma gotowe API; cena: więcej pracy przed czerwcem i obowiązkowe testy bezpieczeństwa w maju
 - Jedna platforma dla wszystkich hoteli w regionie USA, a nie instancja na hotel, bo 107 wdrożeń to za dużo; ten sam zestaw serwisów można postawić w drugim regionie
 - Nie optymalizujemy pod skalowanie, bo ruch jest mały; wracamy do tematu, jak przekroczymy ok. 100 rezerwacji na minutę
 - zmiana: skalujemy w poziomie per serwis (dokładamy instancje temu serwisowi, który tego potrzebuje), nowy hotel dodajemy konfiguracją, a nie wdrożeniem; nie robimy elastyczności, bo szczyt sezonu znamy z góry i wystarczy go zaplanować
