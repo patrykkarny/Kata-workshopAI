@@ -1,0 +1,1451 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room with a View · Zespół White</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokeny ===== */
+:root {
+  --bg: #FAFAF7; --card: #FFFFFF; --line: #D8DEE4;
+  --text: #1F2328; --muted: #57606A;
+  --accent: #1F3A5F; --on-accent: #FFFFFF;
+  --cost: #C2410C; --danger: #B91C1C;
+  --ease: 180ms ease-out;
+}
+:root[data-theme="dark"] {
+  --bg: #121417; --card: #1B1F24; --line: #343B44;
+  --text: #E8E6E1; --muted: #A8B0B8;
+  --accent: #9DB9E0; --on-accent: #121417;
+  --cost: #F08A4B;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased; }
+.num, .score, .sum, .counter, .sp-clock, .sp-plan, .sp-diff, #npClock, .ov-tile .n, .q-tile .qn { font-variant-numeric: tabular-nums; }
+body.deck { overflow: hidden; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+strong { font-weight: 700; }
+
+/* ===== Scena 1920×1080 ===== */
+#viewport { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+#stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+  transform-origin: center; background: var(--bg); overflow: hidden; }
+.crumbs { position: absolute; left: 120px; top: 40px; margin: 0; padding: 0; list-style: none;
+  display: flex; gap: 12px; font-size: 20px; color: var(--muted); }
+.crumbs li + li::before { content: "·"; margin-right: 12px; font-weight: 400; color: var(--muted); }
+.crumbs li.active { color: var(--accent); font-weight: 600; }
+.who { position: absolute; right: 120px; top: 40px; font-size: 20px; color: var(--muted); }
+.hint { position: absolute; left: 120px; bottom: 22px; font-size: 18px; color: var(--muted); }
+.counter { position: absolute; right: 120px; bottom: 22px; font-size: 20px; color: var(--muted); }
+.progress { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--line); }
+.progress > span { display: block; height: 100%; width: 0; background: var(--accent); }
+.progress.warn > span { background: var(--cost); }
+.progress.over > span { background: var(--danger); }
+
+#slide { position: absolute; left: 120px; right: 120px; top: 104px; bottom: 72px;
+  display: flex; flex-direction: column; }
+#slide.enter { animation: fade 160ms ease-out; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Fragmenty (build-outs): zajmują miejsce od początku, więc układ nie skacze */
+.frag { opacity: 0; transform: translateY(12px); visibility: hidden;
+  transition: opacity var(--ease), transform var(--ease), visibility 0s linear 180ms; }
+.frag.shown { opacity: 1; transform: none; visibility: visible;
+  transition: opacity var(--ease), transform var(--ease), visibility 0s; }
+
+/* ===== Typografia wspólna ===== */
+h1.title { font-size: 56px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em;
+  margin: 0 0 40px; max-width: 1640px; text-wrap: balance; }
+.tag { display: inline-block; font-size: 26px; font-weight: 600; line-height: 1.35;
+  border: 2px solid currentColor; border-radius: 6px; padding: 0 10px; white-space: nowrap; }
+.tag.cost { color: var(--cost); }
+.tag.accent { color: var(--accent); }
+.tag.muted { color: var(--muted); }
+.bar { background: var(--card); border: 1px solid var(--line); border-left: 10px solid var(--accent);
+  border-radius: 0 12px 12px 0; padding: 26px 40px; font-size: 28px; line-height: 1.4; }
+.bar .bar-label { color: var(--accent); font-weight: 700; }
+
+/* Diagram zawsze na jasnej karcie, także w trybie ciemnym */
+.diagram { display: block; position: relative; width: 100%; height: 100%; margin: 0;
+  padding: 16px 16px 40px; background: #FFFFFF; border: 1px solid var(--line); border-radius: 12px;
+  cursor: zoom-in; font: inherit; color: #1F2328; }
+.diagram img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.diagram .zoom-hint { position: absolute; right: 16px; bottom: 10px; font-size: 18px; color: #57606A; }
+.diagram.missing { cursor: default; padding: 16px; }
+.ph { width: 100%; height: 100%; border: 3px dashed #8C959F; border-radius: 8px; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; }
+.ph-name { font-size: 30px; font-weight: 600; color: #1F2328; }
+.ph-path { font-size: 20px; color: #57606A; word-break: break-all; }
+.thumb { display: flex; flex-direction: column; gap: 14px; justify-content: center; margin: 0; min-height: 0; }
+.thumb .diagram { height: 560px; }
+.thumb figcaption { font-size: 26px; color: var(--muted); line-height: 1.3; }
+
+/* ===== Układ: title ===== */
+.l-title { justify-content: center; }
+.l-title .big { font-size: 128px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; margin: 0; }
+.l-title .sub { font-size: 34px; color: var(--muted); margin: 28px 0 72px; }
+.l-title .answer { font-size: 38px; font-weight: 600; line-height: 1.35; color: var(--accent);
+  max-width: 1500px; margin: 0; border-left: 8px solid var(--accent); padding-left: 36px; }
+
+/* ===== Układ: heroNumbers ===== */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 30px 44px; }
+.tile .num { font-size: 136px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.tile .pre { font-size: 48px; font-weight: 600; color: var(--muted); margin-right: 16px; letter-spacing: 0; }
+.tile .tl { font-size: 30px; margin-top: 14px; line-height: 1.3; }
+.hero-line { font-size: 30px; line-height: 1.4; margin: 36px 0 0; max-width: 1600px; }
+
+/* ===== Układ: theme ===== */
+.l-theme .label { font-size: 28px; font-weight: 600; color: var(--accent); margin: 0 0 18px; letter-spacing: 0.02em; }
+.l-theme h1.title { max-width: 1560px; }
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px;
+  font-size: 30px; line-height: 1.4; max-width: 1560px; }
+.l-theme .bar { margin-top: auto; }
+
+/* ===== Układ: threeColumns ===== */
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.col { background: var(--card); border: 1px solid var(--line); border-top: 8px solid var(--accent);
+  border-radius: 12px; padding: 30px 34px; }
+.col h2 { font-size: 36px; font-weight: 700; color: var(--accent); margin: 0 0 18px; line-height: 1.2; }
+.col .k { font-size: 26px; font-weight: 600; color: var(--muted); margin: 18px 0 4px; }
+.col p { font-size: 28px; line-height: 1.38; margin: 0; }
+.l-threeColumns .bar { margin-top: auto; }
+
+/* ===== Układ: diagramWithServices ===== */
+.l-diagramWithServices h1.title { margin-bottom: 10px; }
+.subtitle { font-size: 28px; color: var(--muted); margin: 0 0 24px; }
+.split { display: grid; gap: 40px; flex: 1; min-height: 0; }
+.l-diagramWithServices .split { grid-template-columns: 720px 1fr; }
+.svcs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.svc { background: var(--card); border: 1px solid var(--line); border-left: 8px solid var(--line);
+  border-radius: 0 12px 12px 0; padding: 16px 24px; transition: opacity var(--ease), border-color var(--ease); }
+.svc-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
+.svc-name { font-size: 28px; font-weight: 700; }
+.svc-meta { font-size: 26px; color: var(--muted); }
+.svc-text { font-size: 26px; line-height: 1.3; margin: 6px 0 0; }
+.focusing .svc { opacity: 0.4; }
+.focusing .svc.is-focus { opacity: 1; border-left-color: var(--accent); }
+
+/* ===== Układ: styleTable ===== */
+.l-styleTable .split { grid-template-columns: 1fr 430px; gap: 48px; }
+.scores { border-collapse: separate; border-spacing: 0 6px; font-size: 28px; width: 100%; align-self: start; }
+.scores th { font-size: 26px; font-weight: 600; color: var(--muted); text-align: left; vertical-align: bottom;
+  padding: 0 12px 6px; line-height: 1.2; }
+.scores td, .scores tbody th { padding: 8px 12px; background: var(--card); white-space: nowrap;
+  border: 3px solid transparent; border-left-width: 0; border-right-width: 0; transition: background var(--ease), border-color var(--ease); }
+.scores tbody th { font-size: 28px; font-weight: 600; text-align: left; vertical-align: baseline; color: inherit; }
+.scores tbody th:first-child { border-left-width: 3px; border-radius: 8px 0 0 8px; }
+.scores td:last-child { border-right-width: 3px; border-radius: 0 8px 8px 0; }
+.stars { font-size: 26px; letter-spacing: 1px; color: var(--accent); }
+.stars .off { color: var(--muted); }
+.score { font-weight: 700; margin-left: 10px; }
+.sum { font-weight: 700; }
+.mark .tag { visibility: hidden; }
+.scores.on .mark .tag { visibility: visible; }
+.scores.on tr.more > * { border-color: var(--cost); }
+.scores.on tr.more .tag { color: var(--cost); }
+.scores.on tr.ours > * { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.scores.on tr.ours .stars, .scores.on tr.ours .stars .off { color: var(--on-accent); }
+.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px; align-self: center; }
+.reasons li { font-size: 28px; line-height: 1.38; border-left: 6px solid var(--accent); padding-left: 22px; }
+
+/* ===== Układ: decisionCards ===== */
+.dgrid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; }
+.dcard { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 30px 40px; display: flex; flex-direction: column; gap: 14px; }
+.dcard .adr { position: absolute; top: 30px; right: 36px; }
+.chosen { font-size: 30px; font-weight: 700; color: var(--accent); margin: 0; padding-right: 170px; line-height: 1.3; }
+.instead { font-size: 28px; color: var(--muted); margin: 0; line-height: 1.35; }
+.price { font-size: 28px; color: var(--cost); margin: auto 0 0; line-height: 1.4; }
+.price .tag { margin-right: 12px; }
+
+/* ===== Układ: failureRows ===== */
+.l-failureRows .split { grid-template-columns: 1fr 600px; gap: 56px; }
+.frows { list-style: none; margin: 0; padding: 0; align-self: center; }
+.frow { display: grid; grid-template-columns: 320px 44px 1fr; align-items: baseline; padding: 22px 0;
+  border-bottom: 1px solid var(--line); font-size: 28px; line-height: 1.38; }
+.frow:first-child { border-top: 1px solid var(--line); }
+.frow .what { font-size: 30px; font-weight: 700; line-height: 1.25; }
+.frow .arrow { color: var(--muted); }
+
+/* ===== Układ: risksNext ===== */
+.l-risksNext .split { grid-template-columns: 1fr 560px; gap: 72px; flex: 0 0 auto; }
+.ritems { list-style: none; margin: 0; padding: 0; }
+.ritem { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: baseline;
+  padding: 20px 0; border-bottom: 1px solid var(--line); font-size: 28px; line-height: 1.38; }
+.ritem:first-child { border-top: 1px solid var(--line); }
+.timeline { list-style: none; margin: 0; padding: 4px 0 4px 40px; border-left: 4px solid var(--line);
+  display: flex; flex-direction: column; gap: 40px; }
+.timeline li { position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -52px; top: 10px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--accent); }
+.timeline .when { font-size: 30px; font-weight: 700; color: var(--accent); }
+.timeline .what { font-size: 28px; line-height: 1.38; margin-top: 6px; }
+.questions { margin: auto 0 0; text-align: center; font-size: 96px; font-weight: 700; color: var(--accent); line-height: 1.1; }
+
+/* ===== Układ: qa (slajdy zapasowe) ===== */
+.l-qa .split { grid-template-columns: 1fr; }
+.l-qa.has-image .split { grid-template-columns: 1fr 600px; gap: 56px; }
+.answers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px;
+  font-size: 30px; line-height: 1.4; max-width: 1560px; }
+.answers li { position: relative; padding-left: 34px; }
+.answers li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 12px; height: 12px; background: var(--accent); }
+.refs { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
+
+/* ===== Nakładki w scenie ===== */
+.overlay { position: absolute; inset: 0; z-index: 20; background: var(--bg); padding: 72px 120px 56px;
+  display: flex; flex-direction: column; }
+.overlay h2 { font-size: 44px; font-weight: 600; margin: 0 0 32px; }
+.overlay .foot { margin-top: auto; font-size: 20px; color: var(--muted); }
+.tilebtn { font: inherit; color: var(--text); text-align: left; cursor: pointer; background: var(--card);
+  border: 2px solid var(--line); border-radius: 12px; }
+.tilebtn:hover { border-color: var(--accent); }
+.ov-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+.ov-tile { min-height: 200px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
+.ov-tile .n { font-size: 26px; font-weight: 700; color: var(--accent); }
+.ov-tile .t { font-size: 26px; font-weight: 600; line-height: 1.25; }
+.ov-tile .s { font-size: 20px; color: var(--muted); margin-top: auto; }
+.ov-tile.current { border: 4px solid var(--accent); }
+.qg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.qg h3 { font-size: 26px; font-weight: 700; color: var(--accent); margin: 0 0 14px; }
+.qcol { display: flex; flex-direction: column; gap: 12px; }
+.q-tile { display: flex; gap: 14px; align-items: baseline; padding: 14px 18px; }
+.q-tile .qn { font-size: 26px; font-weight: 700; color: var(--accent); min-width: 46px; }
+.q-tile .qt { font-size: 26px; line-height: 1.25; }
+.q-tile.current { border: 4px solid var(--accent); }
+.keys { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 18px 28px; font-size: 26px; line-height: 1.3; margin: 0; }
+.keys dt { font-weight: 700; color: var(--accent); white-space: nowrap; }
+.keys dd { margin: 0; }
+
+/* ===== Lightbox, czarny ekran, panel notatek ===== */
+#lightbox { position: fixed; inset: 0; z-index: 80; background: var(--bg); }
+.lb-bar { position: absolute; left: 0; right: 0; top: 0; height: 60px; display: flex; align-items: center;
+  gap: 10px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+.lb-caption { font-size: 20px; font-weight: 600; margin-right: auto; }
+.btn { font: inherit; font-size: 18px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--text); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.lb-canvas { position: absolute; left: 0; right: 0; top: 60px; bottom: 0; overflow: hidden; cursor: grab; touch-action: none; }
+.lb-canvas.dragging { cursor: grabbing; }
+.lb-canvas img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; padding: 24px;
+  background: #FFFFFF; user-select: none; -webkit-user-drag: none; }
+#black { position: fixed; inset: 0; z-index: 90; background: #000; cursor: pointer; }
+#notesPanel { position: fixed; left: 0; right: 0; bottom: 0; height: 40vh; z-index: 60; overflow: auto;
+  background: var(--card); border-top: 3px solid var(--accent); padding: 20px 32px 28px; font-size: 22px; }
+#notesPanel .np-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+#notesPanel .np-head strong { margin-right: auto; }
+
+/* ===== Okno notatek prelegenta ===== */
+body.speaker { overflow: auto; font-size: 22px; }
+.sp { display: grid; grid-template-columns: 1fr 420px; gap: 36px; padding: 28px 36px; min-height: 100vh; }
+.sp-meta { font-size: 22px; color: var(--muted); line-height: 1.4; }
+.sp-title { font-size: 30px; font-weight: 600; margin: 8px 0 20px; line-height: 1.25; }
+.sp-txt { font-size: 32px; line-height: 1.45; margin: 0; }
+.sp-badge { display: inline-block; font-size: 22px; font-weight: 700; color: var(--cost);
+  border: 2px solid var(--cost); border-radius: 6px; padding: 2px 10px; margin: 0 0 10px; }
+.sp-short { font-size: 28px; line-height: 1.4; margin: 0 0 22px; padding: 12px 18px; border-left: 6px solid var(--cost); background: var(--bg); }
+.sp-extra { border-top: 2px solid var(--line); margin-top: 28px; padding-top: 16px; }
+.sp-extra h2 { font-size: 22px; font-weight: 700; color: var(--muted); margin: 0 0 10px; }
+.sp-extra ul { margin: 0; padding-left: 28px; font-size: 28px; line-height: 1.4; display: flex; flex-direction: column; gap: 12px; }
+.sp-answers { margin: 0; padding-left: 28px; font-size: 30px; line-height: 1.4; display: flex; flex-direction: column; gap: 12px; }
+.sp-side { display: flex; flex-direction: column; gap: 18px; border-left: 1px solid var(--line); padding-left: 32px; }
+.sp-clock { font-size: 120px; font-weight: 700; line-height: 1; }
+.sp-run { font-size: 20px; color: var(--muted); }
+.sp-plan { font-size: 24px; }
+.sp-diff { font-size: 30px; font-weight: 700; }
+.sp-diff.late { color: var(--cost); }
+.sp-next { border-top: 1px solid var(--line); padding-top: 16px; font-size: 24px; line-height: 1.4; }
+.sp-next .lbl { color: var(--muted); font-size: 20px; }
+.sp-next strong { display: block; font-size: 26px; margin: 4px 0 8px; }
+.sp-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .frag { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage" role="region" aria-roledescription="prezentacja" aria-label="Room with a View">
+    <nav aria-label="Sekcje"><ol class="crumbs" id="crumbs"></ol></nav>
+    <div class="who" id="who"></div>
+    <main id="slide"></main>
+    <div class="hint" id="hint"></div>
+    <div class="counter" id="counter"></div>
+    <div class="progress" id="progress" aria-hidden="true"><span></span></div>
+
+    <section class="overlay" id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+      <h2 id="helpTitle">Skróty klawiszowe</h2>
+      <dl class="keys">
+        <dt>→ ↓ Spacja PageDown</dt><dd>dalej</dd>
+        <dt>← ↑ PageUp</dt><dd>wstecz</dd>
+        <dt>Home / End</dt><dd>pierwszy / ostatni slajd</dd>
+        <dt>Klik, swipe</dt><dd>prawa połowa dalej, lewa wstecz</dd>
+        <dt>S</dt><dd>notatki prelegenta (drugie okno)</dd>
+        <dt>T / R</dt><dd>zegar: start i pauza / zeruj</dd>
+        <dt>Q</dt><dd>pytania zapasowe</dd>
+        <dt>Esc</dt><dd>z pytania: powrót do slajdu i kroku</dd>
+        <dt>O</dt><dd>przegląd slajdów</dd>
+        <dt>D</dt><dd>tryb ciemny</dd>
+        <dt>B</dt><dd>czarny ekran</dd>
+        <dt>?</dt><dd>ta pomoc</dd>
+        <dt>Klik w diagram</dt><dd>powiększenie</dd>
+        <dt>+ / - / 0</dt><dd>przybliż / oddal / dopasuj</dd>
+      </dl>
+      <p class="foot">Esc albo ?: zamknij</p>
+    </section>
+
+    <section class="overlay" id="overview" role="dialog" aria-modal="true" aria-labelledby="ovTitle" hidden>
+      <h2 id="ovTitle">Przegląd slajdów</h2>
+      <div class="ov-grid" id="ovGrid"></div>
+      <p class="foot">Strzałki: wybór · Enter: przejdź · Esc albo O: zamknij</p>
+    </section>
+
+    <section class="overlay" id="qgrid" role="dialog" aria-modal="true" aria-labelledby="qgTitle" hidden>
+      <h2 id="qgTitle">Pytania z peer review</h2>
+      <div class="qg" id="qgCols"></div>
+      <p class="foot">Strzałki: wybór · Enter: otwórz · Esc albo Q: zamknij</p>
+    </section>
+  </div>
+</div>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lbCaption" hidden>
+  <div class="lb-bar">
+    <span class="lb-caption" id="lbCaption"></span>
+    <button type="button" class="btn" id="lbIn" aria-label="Przybliż">+</button>
+    <button type="button" class="btn" id="lbOut" aria-label="Oddal">-</button>
+    <button type="button" class="btn" id="lbFit" aria-label="Dopasuj do ekranu">Dopasuj (0)</button>
+    <button type="button" class="btn" id="lbClose" aria-label="Zamknij powiększenie">Zamknij (Esc)</button>
+  </div>
+  <div class="lb-canvas" id="lbCanvas"><img id="lbImg" alt=""></div>
+</div>
+
+<div id="black" hidden aria-hidden="true"></div>
+
+<aside id="notesPanel" aria-label="Notatki prelegenta" hidden>
+  <div class="np-head">
+    <strong>Notatki prelegenta</strong>
+    <span id="npClock"></span>
+    <button type="button" class="btn" id="npClose" aria-label="Zamknij notatki">Zamknij (S)</button>
+  </div>
+  <div id="npBody"></div>
+</aside>
+
+<div id="speakerRoot" hidden>
+  <div class="sp">
+    <section id="spMain" aria-live="polite"><p class="sp-meta">Czekam na główne okno prezentacji…</p></section>
+    <aside class="sp-side">
+      <div class="sp-clock" id="spClock">0:00</div>
+      <div class="sp-run" id="spRun"></div>
+      <div class="sp-plan" id="spPlan"></div>
+      <div class="sp-diff" id="spDiff"></div>
+      <div class="sp-next" id="spNext"></div>
+      <div class="sp-btns">
+        <button type="button" class="btn" data-cmd="prev" aria-label="Wstecz">← Wstecz</button>
+        <button type="button" class="btn" data-cmd="next" aria-label="Dalej">Dalej →</button>
+        <button type="button" class="btn" data-cmd="timer" aria-label="Zegar: start albo pauza">Zegar (T)</button>
+        <button type="button" class="btn" data-cmd="reset" aria-label="Zeruj zegar">Zeruj (R)</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="sr-only" id="live" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ===== Dane: slajdy rdzenia ===== */
+const SECTIONS = ["Problem", "Co dostaje hotel", "Architektura", "Decyzje", "Co dalej"];
+const TALK_SECONDS = 240;
+const WARN_SECONDS = 210;
+const TIME_SCALE = 1; // test kolorów paska: np. 20 przyspiesza zegar dwudziestokrotnie
+
+const IMG = {
+  c2: { src: "c4/out/png/C2-Slide.png", name: "C2: kontenery",
+    alt: "Diagram C4 poziomu 2 (kontenery): Guest Web App i Staff Back-office wywołują Reservations Service i Stay Service; Housekeeping Service z aplikacją na wózki; Room Offer Service; Legacy Sync Service wymienia pliki z systemem legacy; wspólna baza PostgreSQL; zewnętrzni: operator płatności i platforma smart locków." },
+  d1: { src: "c4/out/png/D1-KeyFlow.png", name: "D1: rezerwacja konkretnego pokoju",
+    alt: "Diagram dynamiczny D1: gość wybiera konkretny pokój, Reservations Service w jednej transakcji blokuje pokój na noc, otwiera preautoryzację u operatora płatności, po potwierdzeniu zapisuje rezerwację, a Legacy Sync Service wysyła ją do legacy w następnym pliku." },
+  d3: { src: "c4/out/png/D3-LegacyDown.png", name: "D3: legacy leży albo nie przyszedł plik",
+    alt: "Diagram dynamiczny D3: brak pliku z legacy daje alert; rezerwacja, preautoryzacja, checkout i sprzątanie działają bez legacy; następny numerowany plik nadrabia zaległości, a import jest powtarzalny." }
+};
+
+const SLIDES = [
+  { id: "title", section: "Problem", layout: "title", short: "Tytuł i odpowiedź jednym zdaniem",
+    title: "Room with a View",
+    subtitle: "Zespół White · Marek, Patryk, Mariusz, Kamil",
+    answer: "Pięć serwisów i jedna baza: prosto, żeby zdążyć na czerwiec, rośnie razem z siecią, a hotel działa, nawet gdy coś padnie.",
+    steps: 0, seconds: 10, speaker: "[Mówca]",
+    notes: "Jesteśmy zespołem White. W jednym zdaniu: pięć serwisów i jedna baza. Prosto, rośnie razem z siecią i działa, nawet gdy coś padnie." },
+
+  { id: "june", section: "Problem", layout: "heroNumbers", short: "Czerwiec albo za rok",
+    title: "Czerwiec albo za rok",
+    numbers: [
+      { value: "107", label: "hoteli" },
+      { prefix: "ok.", value: "21 tys.", label: "pokoi" },
+      { prefix: "do", value: "90%", label: "obłożenia w sezonie od czerwca" },
+      { value: "15 min", label: "na przygotowanie pokoju" }
+    ],
+    line: "Zapytaliśmy biznes: legacy nie ma API, najważniejsze jest sprzątanie, smart locki wchodzą do MVP.",
+    steps: 5, seconds: 20, speaker: "[Mówca]", canShorten: true,
+    notes: "Sieć ma 107 hoteli i około 21 tysięcy pokoi. Sezon startuje w czerwcu, obłożenie dochodzi do 90%, a pokój ma być gotowy w 15 minut. Albo zdążymy, albo czekamy rok. Zapytaliśmy biznes: legacy nie ma API, najważniejsze jest sprzątanie, a smart locki wchodzą do MVP.",
+    notesShort: "107 hoteli, 21 tysięcy pokoi, sezon od czerwca: albo zdążymy, albo czekamy rok." },
+
+  { id: "t01", section: "Co dostaje hotel", layout: "theme", short: "01 · Dostępność",
+    label: "01 · Dostępność",
+    title: "Wasz hotel nigdy nie zamyka recepcji. System też nie może.",
+    lines: [
+      "Gość rezerwuje wtedy, kiedy ma ochotę: o 2 w nocy z telefonu, z lotniska, przez telefon albo stojąc przy ladzie.",
+      "Za każdym razem trafia do tego samego systemu i widzi te same pokoje.",
+      "Web, aplikacja mobilna, telefon i walk-in to jedna rezerwacja i jedna prawda o dostępności."
+    ],
+    how: "wszystkie kanały idą przez jedno API w **Reservations Service**. Gdy legacy albo jeden serwis leży, hotel pracuje dalej (fault tolerance).",
+    steps: 1, seconds: 20, speaker: "[Mówca]",
+    notes: "Wasz hotel nigdy nie zamyka recepcji. System też nie może. Gość rezerwuje, kiedy ma ochotę: o 2 w nocy z telefonu, z lotniska albo stojąc przy ladzie, i zawsze widzi te same pokoje. W szczycie sezonu minuta przestoju oznacza apartament, który zarezerwuje się u konkurencji. Dlatego wszystkie kanały idą przez jedno API, a awaria jednego elementu nie zatrzymuje hotelu.",
+    notesExtra: [
+      "Dla CTO: system hostowany przez Was, gotowy na sezon: 107 hoteli od pierwszego dnia, test obciążenia na 3x najgorszą godzinę. Awaria jednego elementu nie zatrzymuje hotelu.",
+      "Nie mówimy »bez pojedynczego punktu awarii«: wspólna baza nim jest, świadomie. Łapie ją replika w drugiej strefie z przełączeniem w 1-2 min (ADR-004).",
+      "»Jedna prawda o dostępności« dotyczy puli pokoi, którą legacy blokuje dla nas i której nie sprzedaje. Pokoje spoza puli zostają w legacy, ich dane dochodzą w plikach co 15 min (ADR-002, ADR-003)."
+    ] },
+
+  { id: "t02", section: "Co dostaje hotel", layout: "theme", short: "02 · Wizualizacja oferty",
+    label: "02 · Wizualizacja oferty",
+    title: "Zainwestowaliście fortunę w każdy pokój. Pozwólcie gościom to zobaczyć.",
+    lines: [
+      "Nikt nie płaci za »deluxe«. Gość płaci za ten pokój: z tarasem, widokiem na zatokę i wanną przy oknie.",
+      "Każdy pokój ma własną stronę ze zdjęciami i położeniem na planie piętra; widok 3D, jeśli hotel go dostarczy.",
+      "Każda inwestycja we wnętrza wreszcie pracuje na sprzedaż."
+    ],
+    how: "**Room Offer Service** pokazuje zdjęcia, plany pięter i cechy pokoi; tylko do odczytu, zdjęcia z CDN.",
+    steps: 1, seconds: 15, speaker: "[Mówca]", canShorten: true,
+    notes: "Zainwestowaliście fortunę w każdy pokój. Pozwólcie gościom to zobaczyć. Gość widzi zdjęcia swojego pokoju i jego miejsce na planie piętra. A gość, który wybrał swój pokój, nie porównuje cen. On już tam jest.",
+    notesShort: "Gość wybiera konkretny pokój ze zdjęć i planu piętra.",
+    notesExtra: [
+      "Na start zdjęcia i położenie na planie piętra; zdjęcia i opisy dostajemy gotowe. Widok 3D pokazujemy tylko, jeśli hotel go dostarczy (FR-20).",
+      "Gość może też wybrać tylko typ pokoju; wtedy pokój przydzielamy dzień przed przyjazdem (FR-01, FR-02)."
+    ] },
+
+  { id: "t03", section: "Co dostaje hotel", layout: "theme", short: "03 · Status pokoju",
+    label: "03 · Status pokoju",
+    title: "Na reputację pracujecie latami. Wystarczy jeden zapomniany szczegół, żeby ją stracić.",
+    lines: [
+      "Zawsze wiecie, czy pokój jest zarezerwowany, wolny, do sprzątania czy w serwisie, i kiedy będzie potrzebny następnym razem.",
+      "Każde życzenie gościa jest przypięte do rezerwacji, a nie do karteczki na recepcji.",
+      "Wiecie też, że przed przyjazdem Céline Dion trzeba rozłożyć perski dywan z koziej sierści. I wiecie to na czas."
+    ],
+    how: "**Reservations Service** to jedyne źródło prawdy o pokoju na noc i jego statusie. Życzenia gościa są w rezerwacji, housekeeper widzi je na liście zadań.",
+    steps: 1, seconds: 20, speaker: "[Mówca]",
+    notes: "Na reputację pracujecie latami. Wystarczy jeden zapomniany szczegół, żeby ją stracić. W luksusie gość nie wybacza drobiazgów, a te błędy biorą się z jednego miejsca: nikt nie wie, co dzieje się z pokojem teraz. U nas wiecie, w jakim jest stanie i kiedy będzie potrzebny. Wiecie też, że przed przyjazdem Céline Dion trzeba rozłożyć perski dywan z koziej sierści. I wiecie to na czas.",
+    notesExtra: [
+      "Życzenia (także obietnice handlowców) zapisujemy w rezerwacji; system sprawdza, czy da się je spełnić, a jak nie, daje znać managerowi hotelu. Housekeeper widzi je przy pokoju na liście zadań (FR-09, FR-13).",
+      "Gdy Reservations Service leży, recepcja i wózki pracują na ostatnim znanym statusie, a zmiany czekają w kolejce (ADR-005)."
+    ] },
+
+  { id: "t04", section: "Co dostaje hotel", layout: "theme", short: "04 · Housekeeping",
+    label: "04 · Housekeeping",
+    title: "Sprzątanie na poziomie, za który gość zapłacił.",
+    lines: [
+      "Ekipy dostają zadania na urządzenia przy wózkach, ułożone według priorytetu: najpierw pokój, do którego gość przyjeżdża za godzinę.",
+      "Każdy pokój ma checklistę, której nie da się »odhaczyć na pamięć«.",
+      "Wyrywkowe zdjęcia po sprzątaniu pozwalają kontrolować jakość bez stania nad nikim."
+    ],
+    how: "**Housekeeping Service** i aplikacja na wózki działająca offline. Priorytet liczymy z tego, kiedy pokój jest znowu potrzebny; checklista i wyrywkowe zdjęcia na urządzeniu.",
+    steps: 1, seconds: 20, speaker: "[Mówca]",
+    notes: "Sprzątanie na poziomie, za który gość zapłacił. Pięć gwiazdek to nie standard, tylko obietnica składana przy każdym pokoju, a system pilnuje, żeby była dotrzymana. Najpierw pokój, do którego gość przyjeżdża za godzinę. Checklisty nie da się odhaczyć na pamięć, a wyrywkowe zdjęcia pozwalają kontrolować jakość bez stania nad nikim.",
+    notesExtra: [
+      "Zadania nie da się zamknąć bez przejścia checklisty. Zdjęcia trafiają do magazynu plików; offline zdjęcie czeka w kolejce na urządzeniu.",
+      "Offline działają lista zadań, zmiana statusu pokoju i zgłoszenie usterki. 15 minut na pokój liczymy z czasu na urządzeniu. Housekeeping obejmuje wszystkie pokoje hotelu (ADR-006, FR-12, FR-17, FR-23)."
+    ] },
+
+  { id: "t05", section: "Co dostaje hotel", layout: "theme", short: "05 · Spójne dane",
+    label: "05 · Spójne dane",
+    title: "Jedna obietnica, jedna prawda, w każdym systemie.",
+    lines: [
+      "Najgorszy moment w hotelu to gość z potwierdzoną rezerwacją, dla którego nie ma pokoju.",
+      "Pokój obiecany przez handlowca, sprzedany online i przygotowany przez housekeeping to zawsze ten sam pokój.",
+      "Rozliczenie pobytu i dane gości trafiają do Waszego systemu; kartę przyjmuje operator płatności, my jej nie widzimy."
+    ],
+    how: "pulę pokoi sprzedajemy tylko my. **Legacy Sync Service** wymienia pliki w obie strony co 15 min, raz dziennie pełne porównanie. Płatność: preautoryzacja u operatora płatności.",
+    steps: 1, seconds: 20, speaker: "[Mówca]",
+    notes: "Jedna obietnica, jedna prawda, w każdym systemie. Najgorszy moment w hotelu to gość z potwierdzoną rezerwacją, dla którego nie ma pokoju. Najczęściej winne są dwa systemy, z których każdy mówi co innego. Nowy system współpracuje z Waszym obecnym systemem rezerwacji, a pokój obiecany, sprzedany i przygotowany to zawsze ten sam pokój.",
+    notesExtra: [
+      "Dla CTO: integrujemy, a nie przepisujemy. Mniej ryzyka i szybciej na produkcji, a to ma znaczenie przed sezonem.",
+      "»Zawsze ten sam pokój« gwarantuje pula: legacy blokuje ją dla nas i jej nie sprzedaje, o pokoju z puli decyduje tylko Reservations Service. Dane pokoi spoza puli mogą być spóźnione do 15 min; przy porównaniu dla puli wygrywamy my, spoza puli legacy (ADR-002, ADR-003).",
+      "Do legacy idą w pliku nasze rezerwacje z danymi gościa, check-iny, checkouty i numer preautoryzacji; legacy rozlicza pobyt przy wymeldowaniu i robi zwroty (ADR-003)."
+    ] },
+
+  { id: "top3", section: "Architektura", layout: "threeColumns", short: "Top 3 charakterystyki",
+    title: "Trzy charakterystyki prowadzą architekturę",
+    columns: [
+      { name: "Prostota",
+        why: "działa w czerwcu albo czekamy rok; buduje to normalny zespół.",
+        measure: "MVP działa w hotelach pilotażowych przed sezonem." },
+      { name: "Skalowalność: wzrost, nie skoki",
+        why: "107 hoteli od pierwszego dnia, firma dokłada kolejne.",
+        measure: "test obciążenia na 3x najgorszą godzinę; nowy hotel bez zmiany kodu." },
+      { name: "Odporność na awarie",
+        why: "przy 90% obłożenia hotel nie może stanąć; nic nie czeka na legacy na żywo.",
+        measure: "wyłączamy Reservations Service na 30 min, a check-in, checkout i sprzątanie działają." }
+    ],
+    footer: "Świadomie odrzucone: elastyczność (automatyczne skalowanie w górę i w dół), bo szczyt sezonu znamy z góry.",
+    steps: 4, seconds: 15, speaker: "[Mówca]",
+    notes: "Stąd trzy charakterystyki. Prostota, bo termin. Skalowalność jako wzrost liczby hoteli, a nie skoki, więc elastyczność świadomie odrzucamy. Odporność na awarie, bo w sezonie hotel nie może stanąć. Każdą umiemy zmierzyć." },
+
+  { id: "c2", section: "Architektura", layout: "diagramWithServices", short: "C2: pięć serwisów",
+    title: "C2: pięć serwisów, jedna baza",
+    subtitle: "TypeScript (NestJS, React) · PostgreSQL · statusy pokoju przez kolejkę zdarzeń, reszta przez HTTPS",
+    image: IMG.c2,
+    services: [
+      { name: "Reservations Service", meta: "ramka Rezerwacja · tematy 01, 03, 05",
+        text: "jedyne miejsce, które zajmuje pokój na noc, jedną transakcją." },
+      { name: "Housekeeping Service", meta: "ramki Housekeeping + Servis tech · temat 04",
+        text: "sprzątanie i usterki w jednej kolejce; aplikacja na wózki działa offline." },
+      { name: "Stay Service", meta: "ramki Visit + Faraway",
+        text: "check-in, checkout i klucze mobilne." },
+      { name: "Legacy Sync Service", meta: "ramka Synchronizacja · temat 05",
+        text: "jedyny, który wymienia pliki z legacy." },
+      { name: "Room Offer Service", meta: "ramka Marketing · temat 02",
+        text: "zdjęcia, plany pięter i cechy pokoi; tylko do odczytu." }
+    ],
+    steps: 6, seconds: 25, speaker: "[Mówca]",
+    notes: "W środku pięć serwisów, każdy to jedna albo dwie ramki z naszego Event Stormingu. Reservations Service jako jedyny zajmuje pokój na noc. Housekeeping Service ma sprzątanie i usterki w jednej kolejce, Stay Service check-in, checkout i klucze, Legacy Sync Service jako jedyny rozmawia z legacy, a Room Offer Service pokazuje zdjęcia i plany pięter." },
+
+  { id: "style", section: "Architektura", layout: "styleTable", short: "Dlaczego service-based",
+    title: "Service-based: 10 punktów, nie 11. Świadomie.",
+    criteria: ["Prostota", "Skalowalność", "Odporność na awarie"],
+    rows: [
+      { style: "Event-driven", scores: [2, 4, 5], sum: 11, mark: "more" },
+      { style: "Mikroserwisy", scores: [1, 5, 5], sum: 11, mark: "more" },
+      { style: "Service-based", scores: [3, 3, 4], sum: 10, mark: "ours" },
+      { style: "Space-based", scores: [1, 5, 3], sum: 9 },
+      { style: "Warstwowy", scores: [5, 1, 1], sum: 7 },
+      { style: "Modularny monolit", scores: [5, 1, 1], sum: 7 },
+      { style: "Service-oriented", scores: [1, 3, 3], sum: 7 },
+      { style: "Microkernel", scores: [4, 1, 1], sum: 6 }
+    ],
+    marks: { more: "więcej punktów", ours: "nasz wybór" },
+    reasons: [
+      "Prostota 3, a nie 2 albo 1: termin to czerwiec.",
+      "Blokada pokoju na noc to jedna transakcja, nie spójność ostateczna.",
+      "Przy ok. 21 rezerwacjach na minutę wystarczy dokładać instancje jednemu serwisowi."
+    ],
+    steps: 2, seconds: 15, speaker: "[Mówca]", canShorten: true,
+    notes: "Uczciwie: w arkuszu event-driven i mikroserwisy mają o punkt więcej. Wybraliśmy service-based, bo jest prostszy przy terminie w czerwcu, blokada pokoju to jedna transakcja, a przy naszym ruchu wystarczy dokładać instancje jednemu serwisowi.",
+    notesShort: "Event-driven i mikroserwisy mają punkt więcej; wygrała prostota przy terminie w czerwcu." },
+
+  { id: "decisions", section: "Decyzje", layout: "decisionCards", short: "Cztery decyzje i ich cena",
+    title: "Cztery decyzje i ich cena",
+    decisions: [
+      { adr: "ADR-004", chosen: "jedna baza PostgreSQL, osobny schemat na serwis",
+        instead: "zamiast bazy na serwis",
+        cost: "wspólny punkt awarii, więc replika w drugiej strefie i przełączenie w 1-2 min." },
+      { adr: "ADR-003", chosen: "pliki z legacy w obie strony co 15 min",
+        instead: "zamiast API, którego nie ma",
+        cost: "dane pokoi spoza puli spóźnione do 15 min." },
+      { adr: "ADR-005", chosen: "zmiany statusu pokoju przez kolejkę zdarzeń z outboxem",
+        instead: "zamiast wywołań HTTPS",
+        cost: "gdy Reservations Service leży, recepcja widzi ostatni znany status." },
+      { adr: "ADR-007", chosen: "smart locki w MVP, adapter w Stay Service",
+        instead: "zamiast startu po sezonie",
+        cost: "test penetracyjny i test unieważniania kluczy w maju; bez nich start na kartach." }
+    ],
+    steps: 4, seconds: 20, speaker: "[Mówca]",
+    notes: "Cztery decyzje i ich cena. Jedna baza, płacimy wspólnym punktem awarii, więc replika. Pliki co 15 minut, płacimy opóźnieniem dla pokoi spoza puli. Statusy pokoju przez kolejkę, żeby sprzątanie działało, gdy rezerwacje leżą. Smart locki w MVP, płacimy testami bezpieczeństwa w maju." },
+
+  { id: "failures", section: "Decyzje", layout: "failureRows", short: "Coś padnie, hotel działa",
+    title: "Coś padnie. Hotel działa dalej.",
+    rows: [
+      { what: "Legacy albo plik z legacy",
+        then: "alert; rezerwacja, płatność, checkout i sprzątanie działają; następny plik nadrabia." },
+      { what: "Reservations Service",
+        then: "Stay i Housekeeping pracują na swojej kopii; zdarzenia czekają w kolejce." },
+      { what: "Baza (przełączenie 1-2 min)",
+        then: "kanały: „spróbuj za chwilę”; zdjęcia z CDN; wózki zapisują offline." },
+      { what: "Cały system",
+        then: "recepcja ma listę awaryjną co 15 min (plik i mail); klucz w telefonie dalej otwiera drzwi." }
+    ],
+    image: IMG.d3, caption: "D3: legacy leży albo nie przyszedł plik",
+    steps: 4, seconds: 20, speaker: "[Mówca]",
+    notes: "Co, jak coś padnie? Legacy leży: alert, a hotel pracuje dalej. Reservations Service leży: pobyt i sprzątanie działają na ostatnim znanym stanie. Baza się przełącza: do dwóch minut, wózki zapisują offline. Leży wszystko: recepcja ma listę awaryjną, a klucz w telefonie dalej otwiera drzwi." },
+
+  { id: "next", section: "Co dalej", layout: "risksNext", short: "Czego nie wiemy, co dalej, pytania",
+    title: "Czego jeszcze nie wiemy i co dalej",
+    items: [
+      { kind: "assume", text: "pliki z legacy co 15 min. Jak raz dziennie: pula dalej bezpieczna, wymeldowania spoza puli wpisuje recepcja." },
+      { kind: "assume", text: "legacy umie dziś blokować pokoje. Jak nie: jedna długa techniczna rezerwacja na każdy pokój z puli." },
+      { kind: "open", text: "zgoda biznesu na preautoryzację u operatora płatności; wielkość puli na hotel i kto ją ustala." }
+    ],
+    timeline: [
+      { when: "Maj, przed sezonem", what: "pilot w 2-3 hotelach; test obciążenia, testy kluczy mobilnych, ćwiczenie przełączenia bazy." },
+      { when: "Czerwiec", what: "wszystkie hotele." }
+    ],
+    closing: "Pytania?",
+    steps: 3, seconds: 15, speaker: "[Mówca]",
+    notes: "Mówimy wprost, czego nie wiemy: jak często i w jakim formacie legacy wymienia pliki, czy umie blokować pokoje i czy biznes zgodzi się na preautoryzację. Na każde założenie mamy plan B. W maju pilot w 2-3 hotelach z testami, w czerwcu wszystkie hotele. Prosto, rośnie razem z siecią i działa, nawet gdy coś padnie. Dziękujemy, czekamy na pytania.",
+    notesExtra: [
+      "Założenie: na start jeden region (USA). Otwarte: gdzie są hotele spoza USA i czy dane gości muszą tam zostać.",
+      "Potem: nowy hotel to konfiguracja; powyżej 100 rezerwacji na minutę instancje dla serwisu, który się dławi; drugi region to ten sam zestaw serwisów."
+    ] }
+];
+
+/* ===== Dane: slajdy zapasowe ===== */
+const BACKUP_GROUPS = ["Styl i skala", "Awarie", "Legacy i płatności", "Hotel na co dzień"];
+
+const BACKUP = [
+  { id: "q1", group: "Styl i skala", short: "Dlaczego nie event-driven?",
+    question: "Dlaczego nie event-driven, skoro ma 11 punktów?",
+    answer: [
+      "Prostota 2 przy terminie w czerwcu: za dużo ruchomych części.",
+      "Daje spójność ostateczną tam, gdzie blokada pokoju na noc potrzebuje jednej transakcji.",
+      "Kolejkę mamy, ale tylko do zmian statusu pokoju, nie jako styl całego systemu."
+    ], refs: ["ADR-001", "ADR-005"] },
+  { id: "q2", group: "Styl i skala", short: "Dlaczego nie mikroserwisy?",
+    question: "Dlaczego nie mikroserwisy, skoro też mają 11?",
+    answer: [
+      "Prostota 1: za dużo ruchomych części jak na czerwiec.",
+      "Najgorsza godzina to ok. 21 rezerwacji na minutę; próg do dokładania instancji to 100.",
+      "Dokładanie instancji jednemu serwisowi wystarcza zamiast drobniejszego podziału."
+    ], refs: ["ADR-001", "ADR-008"] },
+  { id: "q3", group: "Styl i skala", short: "Dlaczego nie monolit, warstwy, microkernel?",
+    question: "Dlaczego nie modularny monolit, warstwy albo microkernel?",
+    answer: [
+      "Są prostsze i tańsze (prostota 5 i 4).",
+      "Ale skalowalność i odporność na awarie mają po 1: jak padnie aplikacja, pada wszystko.",
+      "Odporność na awarie mamy w top 3: rezerwacje, check-in i sprzątanie nie mogą paść razem."
+    ], refs: ["ADR-001"] },
+  { id: "q4", group: "Styl i skala", short: "Po co skalowalność w top 3?",
+    question: "Jedna rezerwacja co 14 s. Po co skalowalność w top 3?",
+    answer: [
+      "Chodzi o wzrost, nie o skoki: 107 hoteli i ok. 21 tys. pokoi od pierwszego dnia, firma dokłada kolejne.",
+      "Check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach.",
+      "Nowy hotel to konfiguracja; próg 100 rezerwacji na minutę (średnia z 15 min) pilnuje dashboard i alert, odpowiada tech lead."
+    ], refs: ["ADR-008"] },
+
+  { id: "q5", group: "Awarie", short: "Pojedynczy punkt awarii?",
+    question: "Czy naprawdę nie ma pojedynczego punktu awarii?",
+    answer: [
+      "Jest jeden, świadomie: wspólna baza. Łapie ją replika w drugiej strefie z automatycznym przełączeniem w 1-2 min (szczegóły: q6).",
+      "Każdy serwis chodzi na min. dwóch instancjach i wdrażamy po kolei; błąd, wdrożenie albo przeciążenie jednego serwisu nie kładzie pozostałych.",
+      "Nic nie czeka na legacy na żywo; kolejka zdarzeń nie zależy od naszej bazy; klucz w telefonie otwiera drzwi bez naszego systemu."
+    ], refs: ["ADR-001", "ADR-004", "ADR-005", "ADR-007"] },
+  { id: "q6", group: "Awarie", short: "Wspólna baza a awaria",
+    question: "Wspólna baza to pojedynczy punkt awarii?",
+    answer: [
+      "Tak, świadomie: jedna baza, jedna replika, jeden backup zamiast pięciu, a blokada pokoju to jedna transakcja.",
+      "Replika w drugiej strefie, automatyczne przełączenie w 1-2 min; ćwiczymy je przed sezonem i co kwartał.",
+      "Backup co noc plus ciągły zapis zmian: odtworzenie do dowolnej chwili z 7 dni, w mniej niż godzinę."
+    ], refs: ["ADR-004"] },
+  { id: "q7", group: "Awarie", short: "Pada Reservations Service",
+    question: "Co, gdy padnie Reservations Service?",
+    answer: [
+      "Stay i Housekeeping pracują na swojej kopii: przyjazdy na dziś, status pokoju, „pokój potrzebny o”.",
+      "Check-in, checkout, „pokój gotowy” i usterki czekają w kolejce; status uzupełnia się po powrocie.",
+      "Sprawdzamy to testem: Reservations Service wyłączony na 30 min. Każdy serwis działa na min. dwóch instancjach."
+    ], refs: ["ADR-005", "ADR-001"] },
+  { id: "q8", group: "Awarie", short: "Legacy leży, brak pliku",
+    question: "Co, gdy legacy leży albo nie przyjdzie plik?",
+    answer: [
+      "Nic nie czeka na legacy na żywo: rezerwacja, płatność, checkout i sprzątanie działają.",
+      "Brak pliku daje alert; pliki są numerowane, import jest powtarzalny, następny plik nadrabia zaległości.",
+      "Wymeldowania spoza puli recepcja wpisuje ręcznie; raz dziennie pełne porównanie (pula: wygrywamy my, spoza puli: legacy)."
+    ], refs: ["ADR-003", "ADR-002"], image: IMG.d3 },
+  { id: "q9", group: "Awarie", short: "Pada cały system",
+    question: "Co, gdy padnie cały system?",
+    answer: [
+      "Recepcja ma listę przyjazdów, wyjazdów i statusów odświeżaną co 15 min, zapisaną poza naszymi serwisami (plik i mail).",
+      "Check-in robi ręcznie, potem wpisuje go w aplikacji; dalej trafia do legacy normalną drogą.",
+      "Klucz zapisany w telefonie dalej otwiera drzwi; karty zostają jako zapas."
+    ], refs: ["ADR-005", "ADR-007"] },
+
+  { id: "q10", group: "Legacy i płatności", short: "Płatności bez API legacy",
+    question: "Jak płatności, skoro legacy nie ma API?",
+    answer: [
+      "Preautoryzacja na stronie zewnętrznego operatora płatności; danych kart nie widzimy. Przy telefonie recepcja wysyła link SMS-em albo mailem.",
+      "Gość ma 10 min: odrzuconą kartę widzi od razu i podaje inną; po 10 min blokada się zwalnia (przy VIP dzwoni recepcja).",
+      "Numer preautoryzacji idzie do legacy w pliku; legacy rozlicza pobyt przy wymeldowaniu i robi zwroty. Zgoda biznesu jeszcze otwarta."
+    ], refs: ["ADR-003"] },
+  { id: "q11", group: "Legacy i płatności", short: "Dane gości i płatności",
+    question: "Gdzie są dane gości i płatności?",
+    answer: [
+      "Karty przyjmuje operator płatności (preautoryzacja); my ich nie widzimy i nie trzymamy.",
+      "Nasze rezerwacje z danymi gościa, check-iny, checkouty i numer preautoryzacji idą do legacy w pliku; legacy rozlicza pobyt i robi zwroty.",
+      "Na start jeden region (USA). Otwarte: gdzie są hotele spoza USA i czy dane gości muszą tam zostać."
+    ], refs: ["ADR-003", "PRD C-05", "FR-22", "A-02"] },
+  { id: "q12", group: "Legacy i płatności", short: "Podwójna rezerwacja?",
+    question: "Pliki co 15 min. Czy nie będzie podwójnej rezerwacji?",
+    answer: [
+      "Nie: legacy blokuje dla nas pulę pokoi i jej nie sprzedaje; o pokoju z puli decyduje tylko Reservations Service.",
+      "Pokój na noc zapisujemy w jednym miejscu, jedną transakcją, więc dwa kanały nie wezmą tego samego pokoju.",
+      "Spóźnione mogą być tylko dane spoza puli, których nie sprzedajemy. Pokój z puli niesprzedany na 48 h przed nocą oddajemy legacy."
+    ], refs: ["ADR-002", "ADR-003"], image: IMG.d1 },
+  { id: "q13", group: "Legacy i płatności", short: "Housekeeping tylko dla puli?",
+    question: "Housekeeping tylko dla pokoi z puli?",
+    answer: [
+      "Nie: od pierwszego dnia dla wszystkich pokoi hotelu, bo to dla biznesu najważniejsze.",
+      "Rezerwacje i wymeldowania spoza puli przychodzą w pliku z legacy co 15 min; Reservations Service liczy „pokój potrzebny o” dla wszystkich pokoi.",
+      "Cena: dla pokoi spoza puli opóźnienie do 15 min; jak legacy wysyła raz dziennie, wymeldowania wpisuje recepcja."
+    ], refs: ["ADR-002", "ADR-003"] },
+
+  { id: "q14", group: "Hotel na co dzień", short: "Wózek bez Wi-Fi",
+    question: "Co, gdy wózek traci Wi-Fi?",
+    answer: [
+      "Aplikacja webowa offline na tabletach firmy: lista zadań, zmiana statusu pokoju i zgłoszenie usterki działają bez sieci.",
+      "Zmiany wysyłają się same po powrocie sieci; o kolejność wygrywa kierowniczka, o stan pokoju housekeeper, który w nim był.",
+      "15 min na pokój liczymy z czasu na urządzeniu; każde zadanie ma jedną osobę."
+    ], refs: ["ADR-006"] },
+  { id: "q15", group: "Hotel na co dzień", short: "Skąd widok 3D?",
+    question: "Skąd widok 3D?",
+    answer: [
+      "Na start gość widzi zdjęcia pokoju i jego położenie na planie piętra; zdjęcia i opisy dostajemy gotowe.",
+      "Widok 3D pokazujemy tylko, jeśli hotel go dostarczy; sami go nie budujemy.",
+      "Pokazuje to Room Offer Service, tylko do odczytu; zdjęcia idą z CDN, więc działają też przy przełączaniu bazy."
+    ], refs: ["PRD FR-20", "FR-29", "ADR-001"] },
+  { id: "q16", group: "Hotel na co dzień", short: "Ochrona klucza mobilnego",
+    question: "Klucz mobilny to fizyczny dostęp. Jak go chronicie?",
+    answer: [
+      "Klucz gościa działa od check-inu do checkoutu; checkout unieważnia go od razu.",
+      "Housekeeper dostaje klucz tylko do przydzielonego pokoju i tylko na czas zadania.",
+      "Każdy klucz ma wpisany czas ważności i sam wygasa. Przed sezonem test penetracyjny i test unieważniania; bez nich start na kartach."
+    ], refs: ["ADR-007"] },
+  { id: "q17", group: "Hotel na co dzień", short: "Zamek albo telefon nie działa",
+    question: "Co, gdy zamek albo telefon nie działa?",
+    answer: [
+      "Gość z rozładowanym telefonem albo przy zamku, który nie odpowiada: recepcja daje kartę jak dziś.",
+      "Housekeeper bierze kartę serwisową od kierowniczki sprzątania, wydawaną i oddawaną na zmianę.",
+      "Klucze mobilne sprawdzamy najpierw w pilocie w 2-3 hotelach w maju."
+    ], refs: ["ADR-007"] },
+  { id: "q18", group: "Hotel na co dzień", short: "Obietnice handlowców",
+    question: "Handlowcy obiecują rzeczy spoza systemu. Co z tym?",
+    answer: [
+      "Obietnice zapisujemy jako życzenia w rezerwacji.",
+      "System sprawdza, czy da się je spełnić; jak nie, daje znać managerowi hotelu.",
+      "Nowe rzeczy dokładamy w serwisie, którego dotyczą, albo jako adapter w Legacy Sync Service."
+    ], refs: ["PRD FR-09", "charakterystyki (ewolucyjność)"] }
+];
+
+/* ===== Narzędzia ===== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rich = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const fmt = sec => { const s = Math.max(0, Math.floor(sec)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const PLAN_END = SLIDES.reduce((ends, s) => ends.concat((ends[ends.length - 1] || 0) + s.seconds), []);
+const IS_SPEAKER = location.hash === "#speaker";
+const FOCUSABLE = "button:not([disabled]), [href], [tabindex]:not([tabindex='-1'])";
+
+/* ===== Render: układy slajdów ===== */
+const h1 = t => `<h1 class="title">${esc(t)}</h1>`;
+const frag = (step, cls = "") => `class="frag ${cls}" data-step="${step}"`;
+
+function diagram(img) {
+  return `<button type="button" class="diagram" data-name="${esc(img.name)}" data-path="${esc(img.src)}"
+      aria-label="Powiększ diagram ${esc(img.name)}. ${esc(img.alt)}">
+    <img src="${esc(img.src)}" alt="${esc(img.alt)}">
+    <span class="zoom-hint" aria-hidden="true">kliknij, aby powiększyć</span>
+  </button>`;
+}
+
+function stars(n) {
+  return `<span class="stars" aria-hidden="true">${"★".repeat(n)}<span class="off">${"☆".repeat(5 - n)}</span></span><span class="score">${n}</span>`;
+}
+
+const LAYOUTS = {
+  title: s => `
+    <h1 class="big">${esc(s.title)}</h1>
+    <p class="sub">${esc(s.subtitle)}</p>
+    <p class="answer">${esc(s.answer)}</p>`,
+
+  heroNumbers: s => `${h1(s.title)}
+    <div class="tiles">${s.numbers.map((n, i) => `
+      <div ${frag(i + 1, "tile")}>
+        <div class="num">${n.prefix ? `<span class="pre">${esc(n.prefix)}</span>` : ""}${esc(n.value)}</div>
+        <div class="tl">${esc(n.label)}</div>
+      </div>`).join("")}
+    </div>
+    <p ${frag(s.numbers.length + 1, "hero-line")}>${esc(s.line)}</p>`,
+
+  theme: s => `
+    <p class="label">${esc(s.label)}</p>
+    ${h1(s.title)}
+    <ul class="lines">${s.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>
+    <div ${frag(1, "bar")}><span class="bar-label">Jak to robimy:</span> ${rich(s.how)}</div>`,
+
+  threeColumns: s => `${h1(s.title)}
+    <div class="cols">${s.columns.map((c, i) => `
+      <section ${frag(i + 1, "col")}>
+        <h2>${esc(c.name)}</h2>
+        <p class="k">Dlaczego</p><p>${esc(c.why)}</p>
+        <p class="k">Jak mierzymy</p><p>${esc(c.measure)}</p>
+      </section>`).join("")}
+    </div>
+    <div ${frag(s.columns.length + 1, "bar")}>${esc(s.footer)}</div>`,
+
+  diagramWithServices: s => `${h1(s.title)}
+    <p class="subtitle">${esc(s.subtitle)}</p>
+    <div class="split">
+      ${diagram(s.image)}
+      <ul class="svcs">${s.services.map((v, i) => `
+        <li class="svc" data-focus="${i + 1}">
+          <div class="svc-head"><span class="svc-name">${esc(v.name)}</span><span class="svc-meta">${esc(v.meta)}</span></div>
+          <p class="svc-text">${esc(v.text)}</p>
+        </li>`).join("")}
+      </ul>
+    </div>`,
+
+  styleTable: s => `${h1(s.title)}
+    <div class="split">
+      <table class="scores" data-on-step="1">
+        <caption class="sr-only">Oceny stylów architektury w skali 1 do 5 dla top 3 charakterystyk</caption>
+        <thead><tr><th scope="col">Styl</th>${s.criteria.map(c => `<th scope="col">${esc(c)}</th>`).join("")}<th scope="col">Suma</th><th scope="col"><span class="sr-only">Oznaczenie</span></th></tr></thead>
+        <tbody>${s.rows.map(r => `
+          <tr class="${r.mark || ""}">
+            <th scope="row">${esc(r.style)}</th>
+            ${r.scores.map(n => `<td>${stars(n)}</td>`).join("")}
+            <td class="sum">${r.sum}</td>
+            <td class="mark">${r.mark ? `<span class="tag">${esc(s.marks[r.mark])}</span>` : ""}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      <ul ${frag(2, "reasons")}>${s.reasons.map(r => `<li>${esc(r)}</li>`).join("")}</ul>
+    </div>`,
+
+  decisionCards: s => `${h1(s.title)}
+    <div class="dgrid">${s.decisions.map((d, i) => `
+      <article ${frag(i + 1, "dcard")}>
+        <span class="tag muted adr">${esc(d.adr)}</span>
+        <p class="chosen">Wybraliśmy: ${esc(d.chosen)}</p>
+        <p class="instead">${esc(d.instead)}</p>
+        <p class="price"><span class="tag cost">Cena</span>${esc(d.cost)}</p>
+      </article>`).join("")}
+    </div>`,
+
+  failureRows: s => `${h1(s.title)}
+    <div class="split">
+      <ul class="frows">${s.rows.map((r, i) => `
+        <li ${frag(i + 1, "frow")}>
+          <span class="what">${esc(r.what)}</span><span class="arrow" aria-hidden="true">→</span><span>${esc(r.then)}</span>
+        </li>`).join("")}
+      </ul>
+      <figure class="thumb">${diagram(s.image)}<figcaption>${esc(s.caption)}</figcaption></figure>
+    </div>`,
+
+  risksNext: s => `${h1(s.title)}
+    <div class="split">
+      <ul ${frag(1, "ritems")}>${s.items.map(it => `
+        <li class="ritem">
+          ${it.kind === "open" ? `<span class="tag cost">! Otwarte</span>` : `<span class="tag accent">Założenie</span>`}
+          <span>${esc(it.text)}</span>
+        </li>`).join("")}
+      </ul>
+      <ol ${frag(2, "timeline")}>${s.timeline.map(t => `
+        <li><div class="when">${esc(t.when)}</div><div class="what">${esc(t.what)}</div></li>`).join("")}
+      </ol>
+    </div>
+    <p ${frag(3, "questions")}>${esc(s.closing)}</p>`,
+
+  qa: q => `${h1(q.question)}
+    <div class="split">
+      <div>
+        <ul class="answers">${q.answer.map(a => `<li>${esc(a)}</li>`).join("")}</ul>
+        <div class="refs">${q.refs.map(r => `<span class="tag muted">${esc(r)}</span>`).join("")}</div>
+      </div>
+      ${q.image ? `<figure class="thumb">${diagram(q.image)}<figcaption>${esc(q.image.name)}</figcaption></figure>` : ""}
+    </div>`
+};
+
+/* ===== Stan i wspólne opisy (scena, okno notatek, panel notatek) ===== */
+const state = { mode: "core", index: 0, step: 0, q: 0, back: { index: 0, step: 0 } };
+const timer = { acc: 0, startedAt: null };
+let theme = "light";
+
+const elapsedOf = t => ((t.acc + (t.startedAt !== null ? Date.now() - t.startedAt : 0)) * TIME_SCALE) / 1000;
+const timerIdle = t => t.acc === 0 && t.startedAt === null;
+
+function stepText(s, step) {
+  return s.steps ? `krok ${step}/${s.steps}` : "bez kroków";
+}
+
+function planDiff(index, e) {
+  const end = PLAN_END[index], start = end - SLIDES[index].seconds;
+  if (e > end) return { late: true, text: `+${fmt(e - end)} za planem` };
+  if (e < start) return { late: false, text: `−${fmt(start - e)} przed planem` };
+  return { late: false, text: "w planie" };
+}
+
+function notesMainHTML(st) {
+  if (st.mode === "backup") {
+    const q = BACKUP[st.q];
+    return `<p class="sp-meta">Pytanie zapasowe ${st.q + 1} / ${BACKUP.length} · ${esc(q.group)}</p>
+      <p class="sp-title">${esc(q.question)}</p>
+      <ul class="sp-answers">${q.answer.map(a => `<li>${esc(a)}</li>`).join("")}</ul>
+      <p class="sp-meta" style="margin-top:16px">Źródła: ${q.refs.map(esc).join(", ")}</p>`;
+  }
+  const s = SLIDES[st.index];
+  return `<p class="sp-meta">Slajd ${st.index + 1} / ${SLIDES.length} · ${esc(s.section)} · ${stepText(s, st.step)} · Mówi: ${esc(s.speaker)}</p>
+    <p class="sp-title">${esc(s.title)}</p>
+    ${s.canShorten ? `<p class="sp-badge">można skrócić</p><p class="sp-short"><strong>Wersja krótka:</strong> ${esc(s.notesShort)}</p>` : ""}
+    <p class="sp-txt">${esc(s.notes)}</p>
+    ${s.notesExtra ? `<div class="sp-extra"><h2>Na pytanie / dla CTO</h2><ul>${s.notesExtra.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}`;
+}
+
+function nextHTML(st) {
+  if (st.mode === "backup") {
+    return `<div class="lbl">Esc w głównym oknie</div><strong>wraca do slajdu ${st.back.index + 1}, ${stepText(SLIDES[st.back.index], st.back.step)}</strong>`;
+  }
+  const n = SLIDES[st.index + 1];
+  if (!n) return `<div class="lbl">Następny</div><strong>koniec rdzenia · Q: pytania zapasowe</strong>`;
+  return `<div class="lbl">Następny slajd</div><strong>${esc(n.title)}</strong><div>Za chwilę: ${esc(n.speaker)}</div>`;
+}
+
+function clockHTML(t, st) {
+  const e = elapsedOf(t);
+  const index = st.mode === "backup" ? st.back.index : st.index;
+  const diff = timerIdle(t) ? { late: false, text: "zegar stoi · T: start" } : planDiff(index, e);
+  return { clock: fmt(e), plan: `Plan końca slajdu: ${fmt(PLAN_END[index])}`, diff,
+    run: t.startedAt !== null ? "zegar chodzi" : (timerIdle(t) ? "zegar wyzerowany" : "zegar zatrzymany") };
+}
+
+/* ===== Synchronizacja okien: BroadcastChannel + postMessage przez window.opener ===== */
+const CHANNEL = "room-with-a-view-deck";
+let bc = null;
+try { bc = new BroadcastChannel(CHANNEL); } catch (err) { bc = null; }
+let peerWin = null;
+const seenIds = [];
+let onMessage = () => {};
+
+function send(msg) {
+  const full = Object.assign({ app: CHANNEL, id: Math.random().toString(36).slice(2) + Date.now() }, msg);
+  try { if (bc) bc.postMessage(full); } catch (err) { /* kanał niedostępny: zostaje postMessage */ }
+  const peer = IS_SPEAKER ? window.opener : peerWin;
+  try { if (peer && !peer.closed) peer.postMessage(full, "*"); } catch (err) { /* okno zamknięte */ }
+}
+
+function receive(data, source) {
+  if (!data || data.app !== CHANNEL || seenIds.includes(data.id)) return;
+  seenIds.push(data.id);
+  if (seenIds.length > 200) seenIds.shift();
+  if (source && source !== window && !IS_SPEAKER) peerWin = source;
+  onMessage(data);
+}
+if (bc) bc.onmessage = e => receive(e.data);
+window.addEventListener("message", e => receive(e.data, e.source));
+
+/* ===== Prezentacja (okno główne) ===== */
+function initDeck() {
+  document.body.classList.add("deck");
+  const stage = $("stage"), slideEl = $("slide"), progress = $("progress"), counter = $("counter");
+  const helpEl = $("help"), overviewEl = $("overview"), qgridEl = $("qgrid");
+  const lightbox = $("lightbox"), lbImg = $("lbImg"), lbCanvas = $("lbCanvas");
+  const blackEl = $("black"), notesPanel = $("notesPanel");
+  let activeDialog = null, lastFocus = null, lastHash = "", speakerWin = null;
+
+  try { theme = localStorage.getItem("rwav-theme") === "dark" ? "dark" : "light"; } catch (err) { theme = "light"; }
+  document.documentElement.dataset.theme = theme;
+
+  const current = () => state.mode === "backup" ? BACKUP[state.q] : SLIDES[state.index];
+
+  /* --- skala sceny --- */
+  function fitStage() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+    if (!lightbox.hidden) lbFit();
+  }
+
+  /* --- render --- */
+  function renderSlide() {
+    const s = current();
+    const layout = state.mode === "backup" ? "qa" : s.layout;
+    slideEl.className = `l-${layout}${layout === "qa" && s.image ? " has-image" : ""}`;
+    slideEl.innerHTML = LAYOUTS[layout](s);
+    wireImages(slideEl);
+    void slideEl.offsetWidth;
+    slideEl.classList.add("enter");
+    applyStep();
+    updateChrome();
+  }
+
+  function applyStep() {
+    const step = state.mode === "core" ? state.step : 0;
+    slideEl.querySelectorAll("[data-step]").forEach(el => el.classList.toggle("shown", step >= Number(el.dataset.step)));
+    slideEl.querySelectorAll("[data-on-step]").forEach(el => el.classList.toggle("on", step >= Number(el.dataset.onStep)));
+    const cards = slideEl.querySelectorAll("[data-focus]");
+    if (cards.length) {
+      const focusing = step >= 1 && step <= cards.length;
+      slideEl.classList.toggle("focusing", focusing);
+      cards.forEach(el => el.classList.toggle("is-focus", focusing && Number(el.dataset.focus) === step));
+    }
+  }
+
+  function updateChrome() {
+    const s = current(), core = state.mode === "core";
+    $("crumbs").innerHTML = core
+      ? SECTIONS.map(sec => sec === s.section ? `<li class="active" aria-current="step">${esc(sec)}</li>` : `<li>${esc(sec)}</li>`).join("")
+      : `<li class="active">Pytania zapasowe</li><li>${esc(s.group)}</li>`;
+    $("who").textContent = core ? s.speaker : "";
+    $("hint").textContent = core ? "?: skróty" : "Esc: wróć do prezentacji · Q: lista pytań";
+    $("live").textContent = core
+      ? `Slajd ${state.index + 1} z ${SLIDES.length}: ${s.title}`
+      : `Pytanie ${state.q + 1} z ${BACKUP.length}: ${s.question}`;
+    writeHash();
+    tick();
+    syncState();
+  }
+
+  function syncState() {
+    send({ type: "state", state: JSON.parse(JSON.stringify(state)), timer: Object.assign({}, timer), theme });
+    if (!notesPanel.hidden) renderNotesPanel();
+  }
+
+  /* --- obrazy i placeholdery --- */
+  function wireImages(root) {
+    root.querySelectorAll(".diagram img").forEach(img => {
+      const fail = () => toPlaceholder(img);
+      if (img.complete && img.naturalWidth === 0) fail();
+      else img.addEventListener("error", fail, { once: true });
+    });
+  }
+
+  function toPlaceholder(img) {
+    const btn = img.closest(".diagram");
+    if (!btn) return;
+    btn.classList.add("missing");
+    btn.setAttribute("aria-disabled", "true");
+    btn.setAttribute("aria-label", `Brak pliku diagramu ${btn.dataset.name}: ${btn.dataset.path}`);
+    btn.innerHTML = `<span class="ph"><span class="ph-name">${esc(btn.dataset.name)}</span><span class="ph-path">${esc(btn.dataset.path)}</span></span>`;
+  }
+
+  /* --- nawigacja --- */
+  function goCore(index, step) {
+    state.mode = "core";
+    state.index = Math.max(0, Math.min(SLIDES.length - 1, index));
+    state.step = step;
+    renderSlide();
+  }
+
+  function setStep(step) {
+    state.step = step;
+    applyStep();
+    syncState();
+  }
+
+  function next() {
+    if (state.mode === "backup") { if (state.q < BACKUP.length - 1) showQuestion(state.q + 1); return; }
+    if (state.index === 0 && timerIdle(timer)) timerToggle();
+    const s = SLIDES[state.index];
+    if (state.step < s.steps) setStep(state.step + 1);
+    else if (state.index < SLIDES.length - 1) goCore(state.index + 1, 0);
+  }
+
+  function prev() {
+    if (state.mode === "backup") { if (state.q > 0) showQuestion(state.q - 1); return; }
+    if (state.step > 0) setStep(state.step - 1);
+    else if (state.index > 0) goCore(state.index - 1, SLIDES[state.index - 1].steps);
+  }
+
+  function showQuestion(q) {
+    if (state.mode === "core") state.back = { index: state.index, step: state.step };
+    state.mode = "backup";
+    state.q = q;
+    renderSlide();
+  }
+
+  function backToCore() {
+    if (state.mode === "backup") goCore(state.back.index, state.back.step);
+  }
+
+  /* --- hash w URL --- */
+  function writeHash() {
+    const h = state.mode === "core" ? `#${state.index + 1}` : `#q${state.q + 1}`;
+    lastHash = h;
+    if (location.hash === h) return;
+    try { history.replaceState(null, "", h); } catch (err) { location.hash = h; }
+  }
+
+  function readHash() {
+    const h = location.hash.slice(1);
+    let m = /^q(\d+)$/i.exec(h);
+    if (m && Number(m[1]) >= 1 && Number(m[1]) <= BACKUP.length) {
+      if (state.mode === "core") state.back = { index: state.index, step: state.step };
+      state.mode = "backup"; state.q = Number(m[1]) - 1;
+      return true;
+    }
+    m = /^(\d+)$/.exec(h);
+    if (m && Number(m[1]) >= 1 && Number(m[1]) <= SLIDES.length) {
+      state.mode = "core"; state.index = Number(m[1]) - 1; state.step = 0;
+      return true;
+    }
+    return false;
+  }
+
+  /* --- zegar i pasek czasu --- */
+  function timerToggle() {
+    if (timer.startedAt !== null) { timer.acc += Date.now() - timer.startedAt; timer.startedAt = null; }
+    else timer.startedAt = Date.now();
+    tick(); syncState();
+  }
+
+  function timerReset() {
+    timer.acc = 0; timer.startedAt = null;
+    tick(); syncState();
+  }
+
+  function tick() {
+    const e = elapsedOf(timer);
+    progress.firstElementChild.style.width = `${Math.min(e / TALK_SECONDS, 1) * 100}%`;
+    progress.classList.toggle("warn", e > WARN_SECONDS && e <= TALK_SECONDS);
+    progress.classList.toggle("over", e > TALK_SECONDS);
+    const pos = state.mode === "core" ? `${state.index + 1} / ${SLIDES.length}` : `Pytanie ${state.q + 1} / ${BACKUP.length}`;
+    counter.textContent = timerIdle(timer) ? pos : `${pos} · ${fmt(e)}`;
+    if (!notesPanel.hidden) $("npClock").textContent = clockText();
+  }
+
+  const clockText = () => { const c = clockHTML(timer, state); return `${c.clock} · ${c.plan} · ${c.diff.text}`; };
+
+  /* --- notatki prelegenta: drugie okno albo panel na dole --- */
+  function openSpeaker() {
+    if (!notesPanel.hidden) { notesPanel.hidden = true; return; }
+    if (speakerWin && !speakerWin.closed) { speakerWin.focus(); return; }
+    let w = null;
+    try { w = window.open(`${location.href.split("#")[0]}#speaker`, "rwav-speaker", "width=1280,height=820"); } catch (err) { w = null; }
+    if (!w) { notesPanel.hidden = false; renderNotesPanel(); tick(); return; }
+    speakerWin = peerWin = w;
+  }
+
+  function renderNotesPanel() {
+    $("npBody").innerHTML = notesMainHTML(state) + `<div class="sp-next">${nextHTML(state)}</div>`;
+  }
+
+  /* --- nakładki (dialogi w scenie) --- */
+  function openDialog(el, focusEl) {
+    closeDialog();
+    lastFocus = document.activeElement;
+    el.hidden = false;
+    activeDialog = el;
+    (focusEl || el.querySelector(FOCUSABLE) || el).focus();
+  }
+
+  function closeDialog() {
+    if (!activeDialog) return;
+    activeDialog.hidden = true;
+    activeDialog = null;
+    if (lastFocus && document.contains(lastFocus) && lastFocus !== document.body) lastFocus.focus();
+    else if (document.activeElement) document.activeElement.blur();
+  }
+
+  function trapFocus(e, root) {
+    const items = [...root.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!root.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  }
+
+  function gridMove(e, tiles) {
+    const cur = tiles.includes(document.activeElement) ? document.activeElement : tiles[0];
+    let col = Number(cur.dataset.col), row = Number(cur.dataset.row);
+    if (e.key === "ArrowRight") col += 1;
+    if (e.key === "ArrowLeft") col -= 1;
+    if (e.key === "ArrowDown") row += 1;
+    if (e.key === "ArrowUp") row -= 1;
+    const inCol = tiles.filter(t => Number(t.dataset.col) === col);
+    if (!inCol.length || row < 0) return;
+    const target = inCol.find(t => Number(t.dataset.row) === row) || inCol[inCol.length - 1];
+    target.focus();
+  }
+
+  function openOverview() {
+    $("ovGrid").innerHTML = SLIDES.map((s, i) => `
+      <button type="button" class="tilebtn ov-tile${state.mode === "core" && i === state.index ? " current" : ""}"
+        data-i="${i}" data-col="${i % 5}" data-row="${Math.floor(i / 5)}"
+        aria-label="Slajd ${i + 1}: ${esc(s.short)}, sekcja ${esc(s.section)}">
+        <span class="n">${i + 1}${state.mode === "core" && i === state.index ? " · teraz" : ""}</span>
+        <span class="t">${esc(s.short)}</span>
+        <span class="s">${esc(s.section)}</span>
+      </button>`).join("");
+    const cur = $("ovGrid").querySelector(".current") || $("ovGrid").firstElementChild;
+    openDialog(overviewEl, cur);
+  }
+
+  function openQGrid() {
+    $("qgCols").innerHTML = BACKUP_GROUPS.map((g, col) => `
+      <section aria-label="${esc(g)}">
+        <h3>${esc(g)}</h3>
+        <div class="qcol">${BACKUP.map((q, i) => ({ q, i })).filter(x => x.q.group === g).map((x, row) => `
+          <button type="button" class="tilebtn q-tile${state.mode === "backup" && x.i === state.q ? " current" : ""}"
+            data-i="${x.i}" data-col="${col}" data-row="${row}" aria-label="Pytanie ${x.i + 1}: ${esc(x.q.question)}">
+            <span class="qn">q${x.i + 1}</span><span class="qt">${esc(x.q.short)}</span>
+          </button>`).join("")}
+        </div>
+      </section>`).join("");
+    const cur = $("qgCols").querySelector(".current") || $("qgCols").querySelector(".q-tile");
+    openDialog(qgridEl, cur);
+  }
+
+  $("ovGrid").addEventListener("click", e => {
+    const t = e.target.closest("[data-i]");
+    if (!t) return;
+    closeDialog();
+    goCore(Number(t.dataset.i), 0);
+  });
+  $("qgCols").addEventListener("click", e => {
+    const t = e.target.closest("[data-i]");
+    if (!t) return;
+    closeDialog();
+    showQuestion(Number(t.dataset.i));
+  });
+
+  /* --- lightbox --- */
+  const lb = { s: 1, fit: 1, x: 0, y: 0, w: 0, h: 0, drag: null, lastFocus: null };
+  const PAD = 24;
+
+  function openLightbox(btn) {
+    const img = btn.querySelector("img");
+    if (!img || btn.classList.contains("missing")) return;
+    lb.lastFocus = btn;
+    $("lbCaption").textContent = btn.dataset.name;
+    lbImg.alt = img.alt;
+    lightbox.hidden = false;
+    lbImg.onload = lbFit;
+    lbImg.src = img.src;
+    if (lbImg.complete && lbImg.naturalWidth) lbFit();
+    $("lbClose").focus();
+  }
+
+  function closeLightbox() {
+    lightbox.hidden = true;
+    if (lb.lastFocus && document.contains(lb.lastFocus)) lb.lastFocus.focus();
+  }
+
+  function lbApply() { lbImg.style.transform = `translate(${lb.x}px, ${lb.y}px) scale(${lb.s})`; }
+
+  function lbFit() {
+    if (!lbImg.naturalWidth) return;
+    lbImg.style.width = `${lbImg.naturalWidth}px`;
+    lbImg.style.height = `${lbImg.naturalHeight}px`;
+    lb.w = lbImg.naturalWidth + PAD * 2;
+    lb.h = lbImg.naturalHeight + PAD * 2;
+    const cw = lbCanvas.clientWidth, ch = lbCanvas.clientHeight;
+    lb.fit = Math.min(cw / lb.w, ch / lb.h) * 0.96;
+    lb.s = lb.fit;
+    lb.x = (cw - lb.w * lb.s) / 2;
+    lb.y = (ch - lb.h * lb.s) / 2;
+    lbApply();
+  }
+
+  function lbZoom(factor, px, py) {
+    const cx = px === undefined ? lbCanvas.clientWidth / 2 : px;
+    const cy = py === undefined ? lbCanvas.clientHeight / 2 : py;
+    const s = Math.max(lb.fit * 0.5, Math.min(lb.fit * 8, lb.s * factor));
+    lb.x = cx - (cx - lb.x) * (s / lb.s);
+    lb.y = cy - (cy - lb.y) * (s / lb.s);
+    lb.s = s;
+    lbApply();
+  }
+
+  lbCanvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    const r = lbCanvas.getBoundingClientRect();
+    lbZoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  lbCanvas.addEventListener("pointerdown", e => {
+    lb.drag = { x: e.clientX, y: e.clientY, ox: lb.x, oy: lb.y };
+    lbCanvas.setPointerCapture(e.pointerId);
+    lbCanvas.classList.add("dragging");
+  });
+  lbCanvas.addEventListener("pointermove", e => {
+    if (!lb.drag) return;
+    lb.x = lb.drag.ox + e.clientX - lb.drag.x;
+    lb.y = lb.drag.oy + e.clientY - lb.drag.y;
+    lbApply();
+  });
+  const endDrag = () => { lb.drag = null; lbCanvas.classList.remove("dragging"); };
+  lbCanvas.addEventListener("pointerup", endDrag);
+  lbCanvas.addEventListener("pointercancel", endDrag);
+  $("lbIn").addEventListener("click", () => lbZoom(1.25));
+  $("lbOut").addEventListener("click", () => lbZoom(1 / 1.25));
+  $("lbFit").addEventListener("click", lbFit);
+  $("lbClose").addEventListener("click", closeLightbox);
+
+  /* --- tryb ciemny i czarny ekran --- */
+  function toggleTheme() {
+    theme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("rwav-theme", theme); } catch (err) { /* bez pamięci wyboru */ }
+    syncState();
+  }
+
+  const setBlack = on => { blackEl.hidden = !on; };
+  blackEl.addEventListener("click", () => setBlack(false));
+
+  /* --- klawiatura --- */
+  const NEXT_KEYS = ["ArrowRight", "ArrowDown", " ", "PageDown"];
+  const PREV_KEYS = ["ArrowLeft", "ArrowUp", "PageUp"];
+  const NAV_KEYS = NEXT_KEYS.concat(PREV_KEYS, ["Home", "End"]);
+  const ARROWS = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"];
+
+  function lightboxKey(e) {
+    if (e.key === "Escape") closeLightbox();
+    else if (e.key === "+" || e.key === "=") lbZoom(1.25);
+    else if (e.key === "-" || e.key === "_") lbZoom(1 / 1.25);
+    else if (e.key === "0") lbFit();
+    else if (e.key === "Tab") { trapFocus(e, lightbox); return; }
+    else if (e.key === "Enter" || e.key === " ") return;
+    e.preventDefault();
+  }
+
+  function dialogKey(e) {
+    const key = e.key, low = key.toLowerCase();
+    if (key === "Tab") { trapFocus(e, activeDialog); return; }
+    const closeKey = (activeDialog === overviewEl && low === "o") || (activeDialog === qgridEl && low === "q") || (activeDialog === helpEl && key === "?");
+    if (key === "Escape" || closeKey) { e.preventDefault(); closeDialog(); return; }
+    if (ARROWS.includes(key) && activeDialog !== helpEl) {
+      e.preventDefault();
+      gridMove(e, [...activeDialog.querySelectorAll("[data-col]")]);
+      return;
+    }
+    if (key !== "Enter" && key !== " ") e.preventDefault();
+  }
+
+  function handleCommand(cmd) {
+    if (!blackEl.hidden && ["next", "prev", "first", "last"].includes(cmd)) { setBlack(false); return; }
+    if (cmd === "next") next();
+    else if (cmd === "prev") prev();
+    else if (cmd === "first") goCore(0, 0);
+    else if (cmd === "last") goCore(SLIDES.length - 1, 0);
+    else if (cmd === "timer") timerToggle();
+    else if (cmd === "reset") timerReset();
+    else if (cmd === "escape") backToCore();
+    else if (cmd === "black") setBlack(blackEl.hidden);
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!lightbox.hidden) { lightboxKey(e); return; }
+    if (activeDialog) { dialogKey(e); return; }
+    const key = e.key, low = key.toLowerCase();
+    const onButton = e.target.closest && e.target.closest("button");
+    if (onButton && (key === "Enter" || key === " ")) return;
+    if (!blackEl.hidden && NAV_KEYS.includes(key)) { e.preventDefault(); setBlack(false); return; }
+
+    if (NEXT_KEYS.includes(key)) handleCommand("next");
+    else if (PREV_KEYS.includes(key)) handleCommand("prev");
+    else if (key === "Home") handleCommand("first");
+    else if (key === "End") handleCommand("last");
+    else if (key === "Escape") handleCommand("escape");
+    else if (key === "?") openDialog(helpEl);
+    else if (low === "s") openSpeaker();
+    else if (low === "t") timerToggle();
+    else if (low === "r") timerReset();
+    else if (low === "q") openQGrid();
+    else if (low === "o") openOverview();
+    else if (low === "d") toggleTheme();
+    else if (low === "b") setBlack(blackEl.hidden);
+    else return;
+    e.preventDefault();
+  });
+
+  /* --- klik i swipe --- */
+  stage.addEventListener("click", e => {
+    if (activeDialog) return;
+    const diagramBtn = e.target.closest(".diagram");
+    if (diagramBtn) { openLightbox(diagramBtn); return; }
+    if (e.target.closest("button, a, [role='dialog']")) return;
+    const r = stage.getBoundingClientRect();
+    handleCommand(e.clientX >= r.left + r.width / 2 ? "next" : "prev");
+  });
+
+  let touch = null;
+  stage.addEventListener("touchstart", e => { const t = e.changedTouches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
+  stage.addEventListener("touchend", e => {
+    if (!touch || activeDialog) { touch = null; return; }
+    const t = e.changedTouches[0], dx = t.clientX - touch.x, dy = t.clientY - touch.y;
+    touch = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      e.preventDefault();
+      handleCommand(dx < 0 ? "next" : "prev");
+    }
+  });
+
+  $("npClose").addEventListener("click", () => { notesPanel.hidden = true; });
+
+  /* --- komunikaty z okna notatek --- */
+  onMessage = msg => {
+    if (msg.type === "hello") syncState();
+    else if (msg.type === "cmd") handleCommand(msg.cmd);
+  };
+
+  window.addEventListener("resize", fitStage);
+  window.addEventListener("hashchange", () => {
+    if (location.hash === lastHash) return;
+    if (readHash()) renderSlide();
+  });
+
+  readHash();
+  fitStage();
+  renderSlide();
+  setInterval(tick, 250);
+}
+
+/* ===== Okno notatek prelegenta (#speaker) ===== */
+function initSpeaker() {
+  document.body.classList.add("speaker");
+  $("viewport").hidden = true;
+  $("speakerRoot").hidden = false;
+  document.title = "Notatki · Room with a View";
+  let st = null, tm = { acc: 0, startedAt: null };
+
+  function render() {
+    if (!st) return;
+    $("spMain").innerHTML = notesMainHTML(st);
+    $("spNext").innerHTML = nextHTML(st);
+    spTick();
+  }
+
+  function spTick() {
+    if (!st) return;
+    const c = clockHTML(tm, st);
+    $("spClock").textContent = c.clock;
+    $("spRun").textContent = c.run;
+    $("spPlan").textContent = c.plan;
+    $("spDiff").textContent = c.diff.text;
+    $("spDiff").classList.toggle("late", c.diff.late);
+  }
+
+  onMessage = msg => {
+    if (msg.type !== "state") return;
+    st = msg.state; tm = msg.timer;
+    document.documentElement.dataset.theme = msg.theme;
+    render();
+  };
+
+  const cmd = c => send({ type: "cmd", cmd: c });
+  document.querySelectorAll("[data-cmd]").forEach(b => b.addEventListener("click", () => cmd(b.dataset.cmd)));
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest("button") && (e.key === "Enter" || e.key === " ")) return;
+    const key = e.key, low = key.toLowerCase();
+    const map = { ArrowRight: "next", ArrowDown: "next", " ": "next", PageDown: "next",
+      ArrowLeft: "prev", ArrowUp: "prev", PageUp: "prev", Home: "first", End: "last", Escape: "escape" };
+    const c = map[key] || { t: "timer", r: "reset", b: "black" }[low];
+    if (!c) return;
+    e.preventDefault();
+    cmd(c);
+  });
+
+  send({ type: "hello" });
+  setInterval(spTick, 250);
+}
+
+if (IS_SPEAKER) initSpeaker(); else initDeck();
+</script>
+</body>
+</html>
