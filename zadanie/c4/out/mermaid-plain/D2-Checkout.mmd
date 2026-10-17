@@ -7,28 +7,31 @@ graph TB
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; emergency list<br/>for reception every 15 min<br/>(file + e-mail); smart-lock<br/>adapter in phase 2."]
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; keeps its own<br/>copy of today's arrivals and<br/>room status (events from<br/>Rezerwacje) and builds the<br/>reception emergency list from<br/>it every 15 min (file +<br/>e-mail); smart-lock adapter:<br/>lock-to-room mapping, issues<br/>and revokes mobile keys<br/>(guest: check-in to checkout;<br/>housekeeper: assigned room,<br/>for the task)."]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests<br/>(phone: the guest gets a<br/>payment link), check-in /<br/>out, room board, cart queue<br/>panel."]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
       7["Housekeeping Cart App<br/>[Container: Offline web app, IndexedDB]<br/>Ordered room list with guest<br/>wishes and defects; works<br/>offline, sends updates when<br/>Wi-Fi is back."]
       style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings; computes<br/>when every hotel room is<br/>needed next."]
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); holds the room<br/>10 min while the guest<br/>pre-authorises the payment at<br/>the payment operator,<br/>confirmed by webhook; never<br/>waits for legacy; computes<br/>when every hotel room is<br/>needed next."]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices. Keeps its own copy<br/>of room status and room<br/>needed-by (events from<br/>Rezerwacje), so it works on<br/>the last known state while<br/>Rezerwacje is down."]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings with a payment link,<br/>check-in / out), hotel<br/>manager (replacement rooms),<br/>housekeeping supervisor (cart<br/>queues)."]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    16["Smart Lock Platform<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone.<br/>A key stored in the phone<br/>opens the lock even while our<br/>system is down; key cards at<br/>reception are the fallback."]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
     2-- "1. Checks guest out<br/>[HTTPS]" -->6
     6-- "2. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
-    10-- "3. Room vacated<br/>[HTTPS]" -->8
-    10-. "4. Guest checked out (event)<br/>[room-status-events]" .->9
-    9-. "5. Push new task (priority:<br/>next arrival)<br/>[WebSocket]" .->7
-    7-- "6. Room cleaned (offline<br/>queue, idempotent)<br/>[HTTPS]" -->9
-    9-. "7. Room ready (event)<br/>[room-status-events]" .->8
-    8-. "8. Push: room ready for<br/>arrival<br/>[WebSocket]" .->6
+    10-. "3. Room vacated (event)<br/>[room-status-events]" .->8
+    10-- "4. Revoke guest key<br/>[Vendor API, HTTPS]" -->16
+    10-. "5. Guest checked out (event)<br/>[room-status-events]" .->9
+    9-. "6. Push new task (priority:<br/>next arrival)<br/>[WebSocket]" .->7
+    7-- "7. Room cleaned (offline<br/>queue, idempotent)<br/>[HTTPS]" -->9
+    9-. "8. Room ready (event)<br/>[room-status-events]" .->8
+    8-. "9. Push: room ready for<br/>arrival<br/>[WebSocket]" .->6
 
   end

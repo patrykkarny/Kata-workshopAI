@@ -11,7 +11,6 @@
 | Outline box | System or container boundary |
 | Solid arrow | Synchronous request (label = intent, `[technology]`) |
 | Dashed arrow | Asynchronous message (event on the `room-status-events` queue, WebSocket push) |
-| "(phase 2)" in a name | Not in the first release |
 
 The Mermaid export (PNG/SVG/`.mmd`) draws persons, browsers and devices as plain boxes: read the type from
 the `[Person]` / `[Container: ...]` line. The local Structurizr render (`structurizr local`) shows the

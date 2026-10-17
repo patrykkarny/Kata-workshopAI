@@ -6,13 +6,15 @@ graph LR
 
     1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system: non-pool<br/>reservations, prices, stay<br/>settlement and refunds at<br/>checkout, cancellations,<br/>manager reports. No API, only<br/>file exchange. Blocks a room<br/>pool that only we sell."]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["Smart Lock Platform (phase 2)<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone."]
+    16["Smart Lock Platform<br/>[Software System]<br/>Lock vendor API: mobile keys<br/>that open doors from a phone.<br/>A key stored in the phone<br/>opens the lock even while our<br/>system is down; key cards at<br/>reception are the fallback."]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["Identity Provider<br/>[Software System]<br/>Signs in guests and staff<br/>(OIDC: OpenID Connect)."]
+    17["Payment Operator<br/>[Software System]<br/>External payment operator:<br/>hosted payment page, card<br/>pre-authorisation at booking.<br/>We never see card data."]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    18["Identity Provider<br/>[Software System]<br/>Signs in guests and staff<br/>(OIDC: OpenID Connect)."]
+    style 18 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings with a payment link,<br/>check-in / out), hotel<br/>manager (replacement rooms),<br/>housekeeping supervisor (cart<br/>queues)."]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
     3["Housekeeping & Maintenance Staff<br/>[Person]<br/>Hotel staff on cleaning<br/>carts: clean and repair rooms<br/>in priority order."]
     style 3 fill:#6b8fb3,stroke:#052e56,color:#ffffff
@@ -22,8 +24,9 @@ graph LR
     1-- "Browses, books<br/>[HTTPS]" -->4
     2-- "Books, checks in / out<br/>[HTTPS]" -->4
     3-- "Gets tasks, reports done /<br/>defect<br/>[Touch UI]" -->4
-    4-- "Signs in<br/>[OIDC]" -->17
-    4-- "Reservations, Payments,<br/>nightly reconciliation<br/>[HTTPS API; plan B: files every 15 min]" -->15
-    4-- "Mobile keys (phase 2)<br/>[Vendor API, HTTPS]" -->16
+    4-- "Guest pays (pre-auth)<br/>[HTTPS redirect]" -->17
+    4-- "Signs in<br/>[OIDC]" -->18
+    4-- "Issues / revokes mobile keys<br/>[Vendor API, HTTPS]" -->16
+    4-- "Swaps files both ways<br/>[SFTP, files every 15 min]" -->15
 
   end

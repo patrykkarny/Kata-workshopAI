@@ -6,14 +6,14 @@ Jedno źródło prawdy: `workspace.dsl` (Structurizr DSL). Obrazków nie rysujem
 
 | Widok | Co pokazuje |
 |---|---|
-| `C1-SystemContext` | system, gość, personel hotelu, housekeeping i systemy zewnętrzne (legacy z Payments, smart locki w etapie 2, Identity Provider) |
+| `C1-SystemContext` | system, gość, personel hotelu, housekeeping i systemy zewnętrzne (legacy przez pliki co 15 min, operator płatności, smart locki, Identity Provider) |
 | `C2-Containers` | pełny widok kontenerów: 3 aplikacje, 5 serwisów, wspólna baza PostgreSQL, magazyn plików (zdjęcia i lista awaryjna recepcji) |
-| `C2-Slide` | uproszczony C2 na slajd: bez strzałek do bazy, bez Identity Provider, magazynu zdjęć i pushy WebSocket |
-| `D1-KeyFlow` | rezerwacja konkretnego pokoju: blokada na noc (10 min), potwierdzenie i płatność w legacy, priorytety sprzątania |
-| `D2-Checkout` | checkout aż do pokoju gotowego dla następnego gościa |
-| `D3-LegacyDown` | legacy nie odpowiada: rezerwacja czeka w outboxie, checkout i sprzątanie działają dalej |
+| `C2-Slide` | uproszczony C2 na slajd: bez strzałek do bazy, bez Identity Provider, magazynu plików, pushy WebSocket, zdarzeń z przyjazdami Rezerwacje → Pobyt, przekierowania z aplikacji gościa do operatora płatności, prośby o klucz dla housekeepera i aktorów z personelu (są na C1) |
+| `D1-KeyFlow` | rezerwacja konkretnego pokoju: blokada na noc (10 min), preautoryzacja u operatora płatności, potwierdzenie webhookiem, priorytety sprzątania, rezerwacja trafia do legacy w następnym pliku |
+| `D2-Checkout` | checkout aż do pokoju gotowego dla następnego gościa, z unieważnieniem klucza mobilnego |
+| `D3-LegacyDown` | legacy leży albo nie przyszedł plik: rezerwacja, checkout i sprzątanie działają dalej, Synchronizacja alarmuje, checkouty spoza puli recepcja wpisuje ręcznie, następny plik nadrabia zaległości |
 
-Serwisy i ramki z tablicy: Rezerwacje (Rezerwacja + dostępność i status pokoju), Housekeeping (Housekeeping + Servis tech), Pobyt (Visit + Faraway), Synchronizacja (legacy, w tym Payments), Oferta (Marketing).
+Serwisy i ramki z tablicy: Rezerwacje (Rezerwacja + dostępność i status pokoju), Housekeeping (Housekeeping + Servis tech), Pobyt (Visit + Faraway, adapter smart locków), Synchronizacja (wymiana plików z legacy), Oferta (Marketing).
 
 ## Renderowanie
 
@@ -37,4 +37,4 @@ Potem http://localhost:8099. Structurizr zapisuje układ w `workspace.json` i `.
 
 ## Legenda
 
-Klucz do oznaczeń (kolory, linie przerywane, „phase 2”) jest w `out/LEGEND.md`, generowany przy każdym renderze.
+Klucz do oznaczeń (kolory, linie przerywane) jest w `out/LEGEND.md`, generowany przy każdym renderze.

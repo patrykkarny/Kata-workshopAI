@@ -7,28 +7,31 @@ graph TB
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["<div style='font-weight: bold'>Pobyt Service (Visit + Faraway)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Visit + Faraway:<br />check-in, checkout,<br />replacement room, room<br />complaints; emergency list<br />for reception every 15 min<br />(file + e-mail); smart-lock<br />adapter in phase 2.</div>"]
+      10["<div style='font-weight: bold'>Pobyt Service (Visit + Faraway)</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Visit + Faraway:<br />check-in, checkout,<br />replacement room, room<br />complaints; keeps its own<br />copy of today's arrivals and<br />room status (events from<br />Rezerwacje) and builds the<br />reception emergency list from<br />it every 15 min (file +<br />e-mail); smart-lock adapter:<br />lock-to-room mapping, issues<br />and revokes mobile keys<br />(guest: check-in to checkout;<br />housekeeper: assigned room,<br />for the task).</div>"]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["<div style='font-weight: bold'>Staff Back-office</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React SPA]</div><div style='font-size: 80%; margin-top:10px'>Phone and walk-in bookings on<br />the same path as guests,<br />check-in / out, room board,<br />cart queue panel.</div>"]
+      6["<div style='font-weight: bold'>Staff Back-office</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, React SPA]</div><div style='font-size: 80%; margin-top:10px'>Phone and walk-in bookings on<br />the same path as guests<br />(phone: the guest gets a<br />payment link), check-in /<br />out, room board, cart queue<br />panel.</div>"]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
       7["<div style='font-weight: bold'>Housekeeping Cart App</div><div style='font-size: 70%; margin-top: 0px'>[Container: Offline web app, IndexedDB]</div><div style='font-size: 80%; margin-top:10px'>Ordered room list with guest<br />wishes and defects; works<br />offline, sends updates when<br />Wi-Fi is back.</div>"]
       style 7 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); 10-min hold for<br />unpaid bookings; computes<br />when every hotel room is<br />needed next.</div>"]
+      8["<div style='font-weight: bold'>Rezerwacje Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frame Rezerwacja + room<br />availability and status: the<br />only place that can take a<br />room for a night (one<br />transaction); holds the room<br />10 min while the guest<br />pre-authorises the payment at<br />the payment operator,<br />confirmed by webhook; never<br />waits for legacy; computes<br />when every hotel room is<br />needed next.</div>"]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Housekeeping +<br />Servis tech: one queue for<br />cleaning and repairs,<br />priority from when the room<br />is needed next; API for cart<br />devices.</div>"]
+      9["<div style='font-weight: bold'>Housekeeping Service</div><div style='font-size: 70%; margin-top: 0px'>[Container: TypeScript, NestJS]</div><div style='font-size: 80%; margin-top:10px'>Board frames Housekeeping +<br />Servis tech: one queue for<br />cleaning and repairs,<br />priority from when the room<br />is needed next; API for cart<br />devices. Keeps its own copy<br />of room status and room<br />needed-by (events from<br />Rezerwacje), so it works on<br />the last known state while<br />Rezerwacje is down.</div>"]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings, check-in / out),<br />hotel manager (replacement<br />rooms), housekeeping<br />supervisor (cart queues).</div>"]
+    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings with a payment link,<br />check-in / out), hotel<br />manager (replacement rooms),<br />housekeeping supervisor (cart<br />queues).</div>"]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
+    16["<div style='font-weight: bold'>Smart Lock Platform</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Lock vendor API: mobile keys<br />that open doors from a phone.<br />A key stored in the phone<br />opens the lock even while our<br />system is down; key cards at<br />reception are the fallback.</div>"]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
     2-- "<div>1. Checks guest out</div><div style='font-size: 70%'>[HTTPS]</div>" -->6
     6-- "<div>2. POST /stays/{id}/checkout</div><div style='font-size: 70%'>[HTTPS]</div>" -->10
-    10-- "<div>3. Room vacated</div><div style='font-size: 70%'>[HTTPS]</div>" -->8
-    10-. "<div>4. Guest checked out (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
-    9-. "<div>5. Push new task (priority:<br />next arrival)</div><div style='font-size: 70%'>[WebSocket]</div>" .->7
-    7-- "<div>6. Room cleaned (offline<br />queue, idempotent)</div><div style='font-size: 70%'>[HTTPS]</div>" -->9
-    9-. "<div>7. Room ready (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->8
-    8-. "<div>8. Push: room ready for<br />arrival</div><div style='font-size: 70%'>[WebSocket]</div>" .->6
+    10-. "<div>3. Room vacated (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->8
+    10-- "<div>4. Revoke guest key</div><div style='font-size: 70%'>[Vendor API, HTTPS]</div>" -->16
+    10-. "<div>5. Guest checked out (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->9
+    9-. "<div>6. Push new task (priority:<br />next arrival)</div><div style='font-size: 70%'>[WebSocket]</div>" .->7
+    7-- "<div>7. Room cleaned (offline<br />queue, idempotent)</div><div style='font-size: 70%'>[HTTPS]</div>" -->9
+    9-. "<div>8. Room ready (event)</div><div style='font-size: 70%'>[room-status-events]</div>" .->8
+    8-. "<div>9. Push: room ready for<br />arrival</div><div style='font-size: 70%'>[WebSocket]</div>" .->6
 
   end

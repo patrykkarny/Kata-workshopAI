@@ -6,13 +6,15 @@ graph LR
 
     1["<div style='font-weight: bold'>Guest</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Views room photos and<br />descriptions; books a room<br />type or a specific room on<br />web or mobile.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Existing system of record:<br />reservations, guest data,<br />prices, Payments (payments,<br />refunds, cancellations),<br />manager reports. Blocks a<br />room pool for us.</div>"]
+    15["<div style='font-weight: bold'>Reservations System (legacy)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Existing system: non-pool<br />reservations, prices, stay<br />settlement and refunds at<br />checkout, cancellations,<br />manager reports. No API, only<br />file exchange. Blocks a room<br />pool that only we sell.</div>"]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["<div style='font-weight: bold'>Smart Lock Platform (phase 2)</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Lock vendor API: mobile keys<br />that open doors from a phone.</div>"]
+    16["<div style='font-weight: bold'>Smart Lock Platform</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Lock vendor API: mobile keys<br />that open doors from a phone.<br />A key stored in the phone<br />opens the lock even while our<br />system is down; key cards at<br />reception are the fallback.</div>"]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["<div style='font-weight: bold'>Identity Provider</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Signs in guests and staff<br />(OIDC: OpenID Connect).</div>"]
+    17["<div style='font-weight: bold'>Payment Operator</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>External payment operator:<br />hosted payment page, card<br />pre-authorisation at booking.<br />We never see card data.</div>"]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings, check-in / out),<br />hotel manager (replacement<br />rooms), housekeeping<br />supervisor (cart queues).</div>"]
+    18["<div style='font-weight: bold'>Identity Provider</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Signs in guests and staff<br />(OIDC: OpenID Connect).</div>"]
+    style 18 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    2["<div style='font-weight: bold'>Hotel Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Front desk (phone and walk-in<br />bookings with a payment link,<br />check-in / out), hotel<br />manager (replacement rooms),<br />housekeeping supervisor (cart<br />queues).</div>"]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
     3["<div style='font-weight: bold'>Housekeeping & Maintenance Staff</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Hotel staff on cleaning<br />carts: clean and repair rooms<br />in priority order.</div>"]
     style 3 fill:#6b8fb3,stroke:#052e56,color:#ffffff
@@ -22,8 +24,9 @@ graph LR
     1-- "<div>Browses, books</div><div style='font-size: 70%'>[HTTPS]</div>" -->4
     2-- "<div>Books, checks in / out</div><div style='font-size: 70%'>[HTTPS]</div>" -->4
     3-- "<div>Gets tasks, reports done /<br />defect</div><div style='font-size: 70%'>[Touch UI]</div>" -->4
-    4-- "<div>Signs in</div><div style='font-size: 70%'>[OIDC]</div>" -->17
-    4-- "<div>Reservations, Payments,<br />nightly reconciliation</div><div style='font-size: 70%'>[HTTPS API; plan B: files every 15 min]</div>" -->15
-    4-- "<div>Mobile keys (phase 2)</div><div style='font-size: 70%'>[Vendor API, HTTPS]</div>" -->16
+    4-- "<div>Guest pays (pre-auth)</div><div style='font-size: 70%'>[HTTPS redirect]</div>" -->17
+    4-- "<div>Signs in</div><div style='font-size: 70%'>[OIDC]</div>" -->18
+    4-- "<div>Issues / revokes mobile keys</div><div style='font-size: 70%'>[Vendor API, HTTPS]</div>" -->16
+    4-- "<div>Swaps files both ways</div><div style='font-size: 70%'>[SFTP, files every 15 min]</div>" -->15
 
   end

@@ -1,44 +1,43 @@
 graph LR
   linkStyle default fill:#ffffff
 
-  subgraph diagram ["[D3] Dynamic diagram: legacy system down"]
+  subgraph diagram ["[D3] Dynamic diagram: legacy down or file missing"]
     style diagram fill:#ffffff,stroke:#ffffff
 
     subgraph 4 ["Room with a View"]
       style 4 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; emergency list<br/>for reception every 15 min<br/>(file + e-mail); smart-lock<br/>adapter in phase 2."]
+      10["Pobyt Service (Visit + Faraway)<br/>[Container: TypeScript, NestJS]<br/>Board frames Visit + Faraway:<br/>check-in, checkout,<br/>replacement room, room<br/>complaints; keeps its own<br/>copy of today's arrivals and<br/>room status (events from<br/>Rezerwacje) and builds the<br/>reception emergency list from<br/>it every 15 min (file +<br/>e-mail); smart-lock adapter:<br/>lock-to-room mapping, issues<br/>and revokes mobile keys<br/>(guest: check-in to checkout;<br/>housekeeper: assigned room,<br/>for the task)."]
       style 10 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja +<br/>calls to Payments: the only<br/>caller of the legacy system;<br/>outbox queue while legacy is<br/>down, nightly data<br/>reconciliation."]
+      11["Synchronizacja Service (legacy ACL)<br/>[Container: TypeScript, NestJS]<br/>Board frame Synchronizacja:<br/>the only place that swaps<br/>files with legacy, both ways<br/>every 15 min. In: room pool<br/>we may sell, prices, non-pool<br/>bookings, check-ins and<br/>check-outs. Out: our pool<br/>bookings with guest data,<br/>check-ins / outs, payment<br/>pre-authorisation number.<br/>Numbered files, idempotent<br/>import, alert on a missing<br/>file; nightly full comparison<br/>(pool: we win, non-pool:<br/>legacy wins)."]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("Shared Database<br/>[Container: PostgreSQL (managed)]<br/>Managed PostgreSQL, one<br/>schema per service, services<br/>never read another service's<br/>schema; replica in a second<br/>zone with automatic failover<br/>in 1-2 min, backups.")]
-      style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room."]
+      5["Guest Web App<br/>[Container: TypeScript, React PWA]<br/>Room photos and descriptions,<br/>availability; books a room<br/>type or a specific room;<br/>sends the guest to the<br/>payment operator's page."]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests,<br/>check-in / out, room board,<br/>cart queue panel."]
+      6["Staff Back-office<br/>[Container: TypeScript, React SPA]<br/>Phone and walk-in bookings on<br/>the same path as guests<br/>(phone: the guest gets a<br/>payment link), check-in /<br/>out, room board, cart queue<br/>panel."]
       style 6 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); 10-min hold for<br/>unpaid bookings; computes<br/>when every hotel room is<br/>needed next."]
+      8["Rezerwacje Service<br/>[Container: TypeScript, NestJS]<br/>Board frame Rezerwacja + room<br/>availability and status: the<br/>only place that can take a<br/>room for a night (one<br/>transaction); holds the room<br/>10 min while the guest<br/>pre-authorises the payment at<br/>the payment operator,<br/>confirmed by webhook; never<br/>waits for legacy; computes<br/>when every hotel room is<br/>needed next."]
       style 8 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices."]
+      9["Housekeeping Service<br/>[Container: TypeScript, NestJS]<br/>Board frames Housekeeping +<br/>Servis tech: one queue for<br/>cleaning and repairs,<br/>priority from when the room<br/>is needed next; API for cart<br/>devices. Keeps its own copy<br/>of room status and room<br/>needed-by (events from<br/>Rezerwacje), so it works on<br/>the last known state while<br/>Rezerwacje is down."]
       style 9 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
     1["Guest<br/>[Person]<br/>Views room photos and<br/>descriptions; books a room<br/>type or a specific room on<br/>web or mobile."]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings, check-in / out),<br/>hotel manager (replacement<br/>rooms), housekeeping<br/>supervisor (cart queues)."]
+    2["Hotel Staff<br/>[Person]<br/>Front desk (phone and walk-in<br/>bookings with a payment link,<br/>check-in / out), hotel<br/>manager (replacement rooms),<br/>housekeeping supervisor (cart<br/>queues)."]
     style 2 fill:#6b8fb3,stroke:#052e56,color:#ffffff
-    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system of record:<br/>reservations, guest data,<br/>prices, Payments (payments,<br/>refunds, cancellations),<br/>manager reports. Blocks a<br/>room pool for us."]
+    15["Reservations System (legacy)<br/>[Software System]<br/>Existing system: non-pool<br/>reservations, prices, stay<br/>settlement and refunds at<br/>checkout, cancellations,<br/>manager reports. No API, only<br/>file exchange. Blocks a room<br/>pool that only we sell."]
     style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    17["Payment Operator<br/>[Software System]<br/>External payment operator:<br/>hosted payment page, card<br/>pre-authorisation at booking.<br/>We never see card data."]
+    style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
-    1-- "1. Books a specific room<br/>[HTTPS]" -->5
-    5-- "2. POST /bookings<br/>[HTTPS]" -->8
-    8-- "3. Hold room-nights (awaiting<br/>legacy)<br/>[SQL, ACID]" -->13
-    8-- "4. Confirm hold: reservation<br/>+ payment<br/>[HTTPS]" -->11
-    11-- "5. Legacy timeout: store in<br/>outbox<br/>[SQL]" -->13
-    2-- "6. Checks another guest out<br/>[HTTPS]" -->6
-    6-- "7. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
-    10-- "8. Checkout report: queued in<br/>outbox<br/>[HTTPS]" -->11
-    10-. "9. Guest checked out:<br/>cleaning starts as usual<br/>[room-status-events]" .->9
-    11-- "10. Legacy back: replay<br/>outbox<br/>[HTTPS API; plan B: files every 15 min]" -->15
+    11-- "1. No file from legacy:<br/>alert, nothing else waits<br/>[SFTP, files every 15 min]" -->15
+    1-- "2. Books a specific room<br/>[HTTPS]" -->5
+    5-- "3. POST /bookings: hold<br/>room-nights<br/>[HTTPS]" -->8
+    8-- "4. Pre-authorisation as<br/>usual, no legacy<br/>[HTTPS, webhook]" -->17
+    2-- "5. Checks guests out;<br/>non-pool checkouts entered by<br/>hand<br/>[HTTPS]" -->6
+    6-- "6. POST /stays/{id}/checkout<br/>[HTTPS]" -->10
+    10-. "7. Guest checked out:<br/>cleaning starts as usual<br/>[room-status-events]" .->9
+    11-- "8. Legacy back: next numbered<br/>file catches up<br/>[SFTP, files every 15 min]" -->15
+    11-- "9. Idempotent import: same<br/>file twice changes nothing<br/>[HTTPS, every 15 min]" -->8
 
   end
