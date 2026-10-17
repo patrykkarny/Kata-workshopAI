@@ -32,7 +32,7 @@ Nasze wyliczenia:
 - 107 hoteli x 200 pokoi to ok. 21 tys. pokoi
 - ok. 60 rezerwacji na hotel dziennie, na 107 hoteli ok. 6400 dziennie, czyli średnio jedna rezerwacja co 14 sekund
 - wymeldowania skupiają się między 10 a 12, to ok. jedno na 2 minuty w hotelu
-- wniosek: ruch jest mały, skalowanie nie jest naszym problemem
+- wniosek: pojedyncza rezerwacja to mały ruch, ale platforma od pierwszego dnia obsługuje 107 hoteli naraz i ma przyjmować kolejne, a check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach
 
 Bez odpowiedzi biznesu (zakładamy):
 - legacy umie już dziś blokować pokoje (pre-rezerwacja)
@@ -62,7 +62,7 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q28: wszystko z rezerwacji dzieje się u nas oprócz płatności, płatność robi legacy przez API
 - Q28: zmiana: przy rezerwacji gość płaci na stronie operatora płatności (preautoryzacja), a pobyt rozlicza legacy przy wymeldowaniu jak dziś; informację o płatności dostaje w pliku
 - Q29: zmiana: z legacy wymieniamy pliki w obie strony co 15 minut, a raz dziennie robimy pełne porównanie danych
-- Q31: zmiana: top 3 to prostota, integracje i odporność na awarie (szczegóły w charakterystykach)
+- Q31: zmiana: top 3 to prostota, skalowalność i odporność na awarie (szczegóły w charakterystykach)
 - Q34: to ten sam pokój, ale każdy kontekst trzyma o nim co innego: oferta zdjęcia, dostępność noce i status, housekeeping zadania
 - Q36: Marketing odpowiada za zdjęcia i opisy, status pokoju jest u nas, cena u managera w legacy
 - Q38: kierowniczka sprzątania dostaje panel z kolejką wszystkich wózków i może zmienić kolejność
@@ -131,25 +131,29 @@ Hot spoty z tablicy i rozmów:
 
 Top 3:
 1. Prostota (simplicity): chodzi o prostą architekturę, nie o łatwość obsługi; system ma działać w czerwcu albo czekamy rok i robi go normalny zespół, więc mało serwisów, jedna baza, bez egzotycznej technologii; mierzymy tym, że MVP chodzi w hotelach pilotażowych przed sezonem
-2. Integracje (interoperability): prawie wszystko idzie przez cudze systemy: legacy, smart locki, urządzenia przy wózkach, cztery kanały; zmiana formatu plików legacy ma ruszać tylko Synchronizację, nie resztę systemu
+2. Skalowalność (scalability): chodzi o wzrost, a nie o nagłe skoki; platforma od pierwszego dnia obsługuje 107 hoteli i ok. 21 tys. pokoi, firma ma dokładać kolejne hotele, a check-iny i checkouty we wszystkich hotelach wypadają w tych samych godzinach; nowy hotel to konfiguracja, a nie zmiana kodu, a serwis, który się dławi, dostaje więcej instancji bez ruszania reszty
 3. Odporność na awarie (fault tolerance): w sezonie przy 90% obłożenia hotel nie może stanąć; nic w rezerwacji, check-inie, checkoucie ani sprzątaniu nie czeka na legacy na żywo, więc jak legacy leży albo plik nie przyjdzie, hotel działa dalej; jak padnie serwis rezerwacji, housekeeping dalej działa
 
 Ważne, ale poza top 3:
 - spójność danych: podwójnej rezerwacji pilnuje pula i to, że pokój na noc zapisujemy w jednym miejscu, nie wybór stylu
 - bezpieczeństwo: danych kart nie widzimy, przyjmuje je operator płatności; klucz mobilny to fizyczny dostęp do pokoju, więc klucz gościa działa tylko w czasie pobytu, housekeeper dostaje klucz tylko do swojego pokoju na czas zadania, a checkout unieważnia klucz od razu
+- integracje: dużo idzie przez cudze systemy (pliki z legacy, smart locki, urządzenia przy wózkach, operator płatności), więc każdą trzymamy w jednym miejscu: legacy w Synchronizacji, zamki w Pobycie; zmiana formatu plików legacy rusza tylko Synchronizację
 - łatwość obsługi: ważna, ale to sprawa interfejsu, nie architektury
 - ewolucyjność: handlowcy cały czas coś obiecują, więc nowe rzeczy dokładamy w serwisie, którego dotyczą, albo jako adapter w Synchronizacji
 
 Odrzucone:
 - skalowalność i elastyczność: jedna rezerwacja co 14 sekund to mało, a „peak season” w zadaniu chodzi o termin, nie o ruch
+- zmiana: skalowalność wraca do top 3 jako wzrost liczby hoteli; odrzucona zostaje tylko elastyczność (automatyczne skalowanie w górę i w dół), bo ruch nie ma nagłych skoków, a szczyt sezonu znamy z góry
 
 Trade-offy:
 - prostota kontra odporność na awarie: oddajemy część prostoty (pięć serwisów zamiast jednej aplikacji), żeby awaria jednego obszaru nie zatrzymała hotelu
 - prostota kontra spójność: zostajemy przy jednej bazie zamiast bazy na serwis, bo to prostsze i blokada pokoju to jedna transakcja; płacimy tym, że baza jest wspólnym punktem awarii, więc replika
+- prostota kontra skalowalność: pięć serwisów, które skalujemy osobno, zamiast jednej aplikacji; nie idziemy w mikroserwisy, bo przy naszym ruchu dokładanie instancji serwisu wystarczy
 - integracje kontra aktualność: legacy ma tylko pliki, więc dane o pokojach spoza puli mogą być spóźnione do 15 minut; dla puli to nie problem, bo sprzedajemy ją tylko my
 - bezpieczeństwo kontra termin: smart locki wchodzą do MVP, bo firma w nie inwestuje, więc przed sezonem musimy zrobić testy bezpieczeństwa; płacimy czasem w maju
 
 Jak mierzymy:
+- skalowalność: test obciążenia na 3x najgorszą godzinę (ok. 65 rezerwacji na minutę plus checkouty ze wszystkich hoteli w oknie 10-12) przed sezonem; dodanie nowego hotelu bez zmiany kodu
 - integracje: zmiana formatu pliku legacy zmienia kod tylko w Synchronizacji; testy na przykładowych plikach z legacy przy każdym buildzie
 - odporność na awarie: test, w którym wyłączamy serwis Rezerwacje na 30 minut, a check-in, checkout i sprzątanie działają
 - housekeeping: 15 minut od „gotowy do sprzątania” do „gotowy dla gościa”, mierzone na urządzeniu przy wózku
@@ -177,6 +181,7 @@ Jak mierzymy:
 - Smart locki w MVP jako adapter w serwisie Pobyt, a nie później, bo firma mocno inwestuje w zamki otwierane telefonem, a dostawca ma gotowe API; cena: więcej pracy przed czerwcem i obowiązkowe testy bezpieczeństwa w maju
 - Jedna platforma dla wszystkich hoteli w regionie USA, a nie instancja na hotel, bo 107 wdrożeń to za dużo; ten sam zestaw serwisów można postawić w drugim regionie
 - Nie optymalizujemy pod skalowanie, bo ruch jest mały; wracamy do tematu, jak przekroczymy ok. 100 rezerwacji na minutę
+- zmiana: skalujemy w poziomie per serwis (dokładamy instancje temu serwisowi, który tego potrzebuje), nowy hotel dodajemy konfiguracją, a nie wdrożeniem; nie robimy elastyczności, bo szczyt sezonu znamy z góry i wystarczy go zaplanować
 
 Doprecyzowania po ADR-ach:
 
@@ -190,7 +195,7 @@ Pokój i status, gdy coś leży
 Kolejka
 - każdy serwis zapisuje zdarzenie w swoim schemacie razem z danymi (outbox), a dalej idzie przez zarządzaną kolejkę w chmurze, która nie zależy od naszej bazy
 - zdarzenie może przyjść dwa razy, więc każdy odbiorca sprawdza jego identyfikator i drugi raz go ignoruje
-- kolejka służy tylko do czterech zmian statusu pokoju; to nie jest event-driven dla całego systemu, więc nie przeczy odrzuceniu event-driven w stylu
+- kolejka służy tylko do zmian statusu pokoju (check-in, checkout, pokój potrzebny o, pokój gotowy, usterka); to nie jest event-driven dla całego systemu, więc nie przeczy odrzuceniu event-driven w stylu
 
 Legacy (pliki)
 - legacy przysyła pulę pokoi, które możemy sprzedawać, a nasz system odsyła, które z nich są zarezerwowane; pula jest tylko nasza, więc opóźnienie plików nie grozi podwójną rezerwacją
@@ -201,6 +206,7 @@ Legacy (pliki)
 - raz dziennie pełne porównanie: dla pokoi z puli wygrywa nasz system, dla pokoi spoza puli wygrywa legacy; listę różnic dostaje rano manager hotelu
 - jak legacy nie umie blokować pokoi (A-01), pulę blokujemy w legacy jedną długą techniczną rezerwacją na każdy pokój z puli
 - pokój z puli niesprzedany na 48 h przed nocą oddajemy do legacy w pliku (nadpisanie pre-rezerwacji)
+- gość w web i mobile przechodzi z naszej aplikacji na stronę operatora płatności i wraca z potwierdzeniem; przy rezerwacji telefonicznej recepcja wysyła gościowi link do płatności SMS-em albo mailem
 
 Baza
 - wspólna baza daje to, że utrzymujemy jedną bazę z jedną repliką i jednym backupem zamiast pięciu, czyli prościej i taniej
@@ -225,14 +231,18 @@ Smart locki
 - klucz gościa wydajemy przy check-inie i unieważniamy przy checkoucie; zamek dostawcy działa z kluczem zapisanym w telefonie, więc wejście do pokoju nie zależy od tego, czy nasz system działa
 - jak telefon gościa jest rozładowany albo zamek nie odpowiada, recepcja daje kartę, karty zostają jako zapas
 - w pilocie w maju sprawdzamy klucze mobilne w 2-3 hotelach, zanim wejdą wszędzie
+- każdy klucz ma wpisany czas ważności (koniec pobytu albo koniec zadania), więc nawet jak unieważnienie nie dotrze do zamka, klucz sam wygasa
+- jak housekeeperowi padnie telefon, bierze kartę serwisową od kierowniczki sprzątania, która jest wydawana i oddawana na zmianę
 
 Skalowanie
+- zmiana: skalowalność jest w top 3 jako wzrost liczby hoteli; poniższe progi zostają jako sygnał, kiedy dokładać instancje
 - próg 100 rezerwacji na minutę liczymy dla całej platformy w regionie, jako średnią z 15 minut; pilnuje tego dashboard i alert, a odpowiada tech lead
 - najgorsza godzina: jak 20% dziennych rezerwacji przyjdzie w jednej godzinie, to ok. 1300 na godzinę, czyli ok. 21 na minutę, dużo poniżej progu
 - zysk: prostsza i tańsza infrastruktura i zespół skupiony na terminie
 - jak przekroczymy próg, najpierw dokładamy instancje tylko temu serwisowi, który się dławi, co service-based umożliwia, a w tym czasie planujemy dalsze zmiany
 - poza sezonem nie skalujemy w dół, bo przy tym ruchu oszczędność jest mała
 - drugi region ma swój próg
+- ryzyko okresu między przekroczeniem progu a dalszymi zmianami akceptuje dyrektor operacyjny po stronie biznesu
 
 ## Nadal otwarte
 
