@@ -56,6 +56,7 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q15: obietnice handlowców zapisujemy jako życzenia w rezerwacji, system sprawdza czy się da i jak nie, daje znać managerowi
 - Q18: dostępny to wolny do sprzedaży, gotowy to posprzątany; to dwa różne stany
 - Q25: gość może wybrać konkretny pokój albo tylko typ; przy typie pokój przydzielamy dzień przed przyjazdem
+- Q25: przy wyborze konkretnego pokoju gość widzi jego zdjęcia i położenie na planie piętra, bo o to chodzi w zadaniu (wymaganie 02)
 - Q26: legacy odgórnie blokuje pulę pokoi dla nas i nie może ich sprzedać
 - Q28: wszystko z rezerwacji dzieje się u nas oprócz płatności, płatność robi legacy przez API
 - Q29: zmiana: rezerwacje i płatności wysyłamy do legacy od razu, a raz dziennie robimy tylko porównanie danych; sama synchronizacja raz dziennie nie potwierdziłaby płatności
@@ -65,6 +66,18 @@ Bez odpowiedzi biznesu (zakładamy):
 - Q38: kierowniczka sprzątania dostaje panel z kolejką wszystkich wózków i może zmienić kolejność
 - Q44: jak nasz system padnie, recepcja ma odświeżaną co kwadrans listę przyjazdów, wyjazdów i statusów, robi check-in ręcznie i dopisuje potem
 - Q55: housekeeping obejmuje wszystkie pokoje hotelu; dla pokoi spoza puli bierzemy zameldowania i wymeldowania z legacy co kilka minut
+
+Runda 5:
+- Q60: baza to zarządzany PostgreSQL z repliką w drugiej strefie i automatycznym przełączeniem w 1-2 minuty; w tym czasie wózki zapisują offline, a recepcja ma listę awaryjną; różnica z monolitem: błąd w kodzie, wdrożenie albo przeciążenie jednego serwisu nie kładzie pozostałych, a awarię samej bazy łapie replika
+- Q61: każdy serwis chodzi minimum na dwóch instancjach i wdrażamy po kolei, więc wdrożenie nie zatrzymuje rezerwacji ani check-inów
+- Q62: zmiana: „pokój gotowy” i „usterka” z Housekeepingu idą do Rezerwacji przez kolejkę zdarzeń, nie przez HTTPS; jak Rezerwacje leżą, zdarzenia czekają w kolejce, a status na recepcji uzupełnia się po powrocie
+- Q63: Synchronizacja przekazuje do Rezerwacji rezerwacje z legacy dla pokoi spoza puli, Rezerwacje liczą „pokój potrzebny o” dla wszystkich pokoi i wysyłają to do Housekeepingu
+- Q64: w maju pilot w 2-3 hotelach, od początku czerwca wszystkie hotele
+- Q65: jak płatność z kolejki zostanie odrzucona, blokada pokoju się zwalnia, gość dostaje maila i SMS z linkiem do ponownej płatności, a przy gościach VIP dzwoni recepcja
+- Q66: listę awaryjną co 15 minut generuje serwis Pobyt i zapisuje poza naszymi serwisami (plik w magazynie plików, wysyłany też mailem do recepcji); ręczne check-iny recepcja wprowadza potem w aplikacji, a dalej trafiają do legacy normalną drogą
+- Q67: przydział pokoju dzień przed przyjazdem robi zadanie w serwisie Rezerwacje; jak nie ma wolnego pokoju danego typu, manager dostaje alert i decyduje o upgradzie
+- Q68: FR-02, FR-09 i FR-15 są w serwisie Rezerwacje, FR-18 w serwisie Pobyt
+- Q69: zakładamy, że „less than 20” to personel na hotel, z czego ok. 8-10 osób to housekeeperzy z urządzeniem przy wózku
 
 ## Domena: bounded contexty i moduły
 
@@ -97,6 +110,19 @@ Jak ramki mapują się na serwisy:
 - serwis Synchronizacja: ramka Synchronizacja i wywołania do Payments, z kolejką na czas awarii legacy
 - serwis Oferta: ramka Marketing, tylko do odczytu dla reszty
 
+Które wymagania robi który serwis:
+- Rezerwacje: FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-09, FR-15, FR-16
+- Housekeeping: FR-11, FR-12, FR-13, FR-14, FR-17
+- Pobyt: FR-10, FR-18
+- Synchronizacja: FR-07, FR-08, FR-19
+- Oferta: pokazywanie zdjęć, planów pięter i cech pokoi do wyboru
+
+Hot spoty z tablicy i rozmów:
+- Rezerwacja: dwa kanały mogą chcieć ten sam pokój na tę samą noc, dlatego blokada pokoju na noc jest w jednym miejscu
+- Synchronizacja: API legacy jest jeszcze w toku, dlatego mamy plan B z plikami co 15 minut
+- Housekeeping: Wi-Fi w hotelu się rwie, dlatego aplikacja na wózki działa offline
+- Rezerwacja: handlowcy obiecują gościom rzeczy, których nie ma w systemie, dlatego obietnice zapisujemy jako życzenia ze sprawdzeniem
+
 ## Charakterystyki architektury
 
 <!-- Co system musi dobrze robić i dlaczego (dostępność, skalowalność, bezpieczeństwo, ...). Które 3 są najważniejsze. -->
@@ -115,6 +141,17 @@ Ważne, ale poza top 3:
 Odrzucone:
 - skalowalność i elastyczność: jedna rezerwacja co 14 sekund to mało, a „peak season” w zadaniu chodzi o termin, nie o ruch
 
+Trade-offy:
+- prostota kontra odporność na awarie: oddajemy część prostoty (pięć serwisów zamiast jednej aplikacji), żeby awaria jednego obszaru nie zatrzymała hotelu
+- prostota kontra spójność: zostajemy przy jednej bazie zamiast bazy na serwis, bo to prostsze i blokada pokoju to jedna transakcja; płacimy tym, że baza jest wspólnym punktem awarii, więc replika
+- integracje kontra termin: nie czekamy na idealne API legacy, mamy plan B z plikami, za cenę opóźnienia do 15 minut w trybie awaryjnym
+- bezpieczeństwo kontra termin: smart locki przesuwamy do etapu 2, na start karty jak dziś
+
+Jak mierzymy:
+- integracje: zmiana API legacy zmienia kod tylko w Synchronizacji; testy kontraktowe z API legacy przy każdym buildzie
+- odporność na awarie: test, w którym wyłączamy serwis Rezerwacje na 30 minut, a check-in, checkout i sprzątanie działają
+- housekeeping: 15 minut od „gotowy do sprzątania” do „gotowy dla gościa”, mierzone na urządzeniu przy wózku
+
 15 minut na pokój liczymy od „gotowy do sprzątania” do „gotowy dla gościa”.
 
 ## Decyzje
@@ -127,6 +164,7 @@ Odrzucone:
 - Cena service-based: pięć rzeczy do wdrożenia zamiast jednej i wywołania po sieci między serwisami
 - Serwisy gadają ze sobą przez HTTPS, a zmiany statusu pokoju (gość wymeldowany, pokój potrzebny o, pokój gotowy) idą przez prostą kolejkę zdarzeń, bo housekeeping ma działać dalej, nawet jak serwis rezerwacji leży
 - Oferta na pierwszy dzień tylko pokazuje zdjęcia, plany pięter i cechy pokoi, bo bez tego gość nie wybierze konkretnego pokoju; ceny i kampanie marketingu zostają w legacy (Q5)
+- Zakres pierwszego dnia to rezerwacje, check-in, checkout, housekeeping i pokazywanie zdjęć pokoi przez Ofertę; reszta marketingu zostaje w legacy
 - Jeden stack: TypeScript (NestJS na backendzie, React na frontendzie) i PostgreSQL, a logowanie przez zewnętrznego dostawcę tożsamości, bo zespół ma znać jedną technologię i nie budujemy własnego logowania
 - Pokój na noc i jego status trzymamy u siebie, a nie w legacy, bo legacy nie sprzedaje puli, a sprzątanie potrzebuje jednego statusu; cena: musimy codziennie porównywać dane z legacy
 - Z legacy gadamy przez API od razu, a nie synchronizacją raz dziennie, bo inaczej nie potwierdzimy płatności; jak API legacy nie zdąży na czerwiec, plan B to wymiana plików co 15 minut
